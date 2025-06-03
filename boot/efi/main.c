@@ -6,6 +6,19 @@
 #include "minc.h"
 // #include "miniz.h"
 
+#ifdef QUIET
+int info_on = FALSE;
+#else
+int info_on = TRUE;
+#endif
+#define Info(...)               \
+    do                          \
+        if (info_on)            \
+        {                       \
+            Print(__VA_ARGS__); \
+        }                       \
+    while (0);
+
 typedef void (*kernel_entry_t)(boot_info_t *bi);
 
 typedef struct
@@ -27,9 +40,9 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 
     InitializeLib(ImageHandle, SystemTable);
 
-    Print(L"os0x, an experimental operating system\n");
-    Print(L"Copyright (c) 2025 Josh Wyant\n");
-    Print(L"\nPress C-t x to exit Qemu monitor.\n\n");
+    Info(L"os0x, an experimental operating system\n");
+    Info(L"Copyright (c) 2025 Josh Wyant\n");
+    Info(L"\nPress C-t x to exit Qemu monitor.\n\n");
 
     boot_info_t bi = {
         .magic = BOOTINFO_MAGIC,
@@ -37,7 +50,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
     fill_graphics_info(SystemTable, &bi);
     // TODO: InitRD image info, too
 
-    Print(L"Loading initrd.img...\n");
+    Info(L"Loading initrd.img...\n");
     status = load_boot_image(ImageHandle, SystemTable, &bi);
     if (EFI_ERROR(status))
     {
@@ -66,7 +79,8 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
         return status;
     }
 
-    Print(L"Kernel returned. Press any key to exit to UEFI...\n");
+    Info(L"Kernel returned.\n");
+    Print(L"Press any key to exit to UEFI...\n");
     wait_for_key(SystemTable);
 
     return EFI_SUCCESS;
@@ -262,7 +276,7 @@ EFI_STATUS enter_kernel(EFI_HANDLE ImageHandle, kernel_image_t *kernel_info, boo
     //     return status;
     // }
 
-    Print(L"Kernel loaded. Executing...\n");
+    Info(L"Kernel loaded. Executing...\n");
     kernel_info->entry(bi);
 
     // Should kernel return

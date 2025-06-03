@@ -16,7 +16,6 @@ typedef struct
     uint64_t framebuffer_size;
     uint32_t framebuffer_width;
     uint32_t framebuffer_height;
-    uint32_t framebuffer_pitch;
     uint32_t pixels_per_scanline;
 
     // Add more fields as needed (e.g., memory map, ACPI, etc.)

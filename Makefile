@@ -11,6 +11,7 @@ KERNEL_SRC := kernel
 KERNEL_OBJ := $(KERNEL_SRC)/obj
 KERNEL_BIN := $(KERNEL_SRC)/bin
 INITRD_IMG_FNAME := initrd.img
+DEFINES := "-DQUIET"
 
 all: $(DISK_IMAGE) run
 
@@ -21,7 +22,7 @@ run: $(DISK_IMAGE)
 		-drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd \
 		-drive file=$(DISK_IMAGE),format=raw,if=virtio \
 		-echr 0x14 \
-		-nographic
+		-vnc :1,password=off -nographic
 
 debug: $(DISK_IMAGE)
 # Use C-t to enter qemu monitor
@@ -56,6 +57,7 @@ $(EFI_OBJ)/main.o: $(EFI_SRC)/main.c
 		-fshort-wchar -mno-red-zone -fvisibility=hidden \
 		-I/usr/local/include/efi -I/usr/local/include/efi/x86_64 \
 		-Iboot/include -Ithird_party/include -Iinclude \
+		$(DEFINES) \
 		-c $< -o $@
 
 $(EFI_OBJ)/main.so: $(EFI_OBJ)/main.o #$(EFI_OBJ)/miniz.o
