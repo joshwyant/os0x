@@ -16,3 +16,10 @@ extern "C"
 #ifdef _cplusplus
 } // extern "C"
 #endif
+
+static void freeze()
+{
+    disable_interrupts();
+    while (TRUE)
+        halt_cpu();
+}

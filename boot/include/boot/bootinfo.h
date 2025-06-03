@@ -6,6 +6,14 @@
 
 typedef struct
 {
+    EFI_MEMORY_DESCRIPTOR *memory_map; // Pointer to UEFI memory map (copied)
+    uint64_t memory_map_size;          // Total size in bytes
+    uint64_t descriptor_size;          // Size of each descriptor
+    uint32_t descriptor_version;
+} boot_memmap_t;
+
+typedef struct
+{
     enum
     {
         BOOTINFO_MAGIC = 0x1BADB002
@@ -17,6 +25,7 @@ typedef struct
     uint32_t framebuffer_width;
     uint32_t framebuffer_height;
     uint32_t pixels_per_scanline;
+    boot_memmap_t memory_map;
 
     // Add more fields as needed (e.g., memory map, ACPI, etc.)
 } boot_info_t;

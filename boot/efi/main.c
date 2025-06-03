@@ -30,7 +30,8 @@ typedef struct
 
 EFI_STATUS load_boot_image(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, boot_info_t *bi);
 EFI_STATUS load_kernel(void *elf_data, size_t elf_size, kernel_image_t *out);
-EFI_STATUS enter_kernel(EFI_HANDLE ImageHandle, kernel_image_t *kernel_info, boot_info_t *bi);
+EFI_STATUS enter_kernel(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, kernel_image_t *kernel_info, boot_info_t *bi, UINTN mapKey);
+EFI_STATUS get_memmap(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, kernel_image_t *kernel_info, boot_info_t *bi, UINTN *mapKey);
 void fill_graphics_info(EFI_SYSTEM_TABLE *SystemTable, boot_info_t *bi);
 void clear_screen(boot_info_t *bi, uint32_t color);
 void wait_for_key(EFI_SYSTEM_TABLE *SystemTable);
@@ -75,7 +76,14 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
         return status;
     }
 
-    status = enter_kernel(ImageHandle, &kernel_info, &bi);
+    UINTN mapKey;
+    status = get_memmap(ImageHandle, SystemTable, &kernel_info, &bi, &mapKey);
+    if (EFI_ERROR(status))
+    {
+        return status;
+    }
+
+    status = enter_kernel(ImageHandle, SystemTable, &kernel_info, &bi, mapKey);
     if (EFI_ERROR(status))
     {
         return status;
@@ -260,23 +268,47 @@ EFI_STATUS load_kernel(void *elf_data, size_t elf_size, kernel_image_t *out)
     return EFI_SUCCESS;
 }
 
-EFI_STATUS enter_kernel(EFI_HANDLE ImageHandle, kernel_image_t *kernel_info, boot_info_t *bi)
+EFI_STATUS get_memmap(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, kernel_image_t *kernel_info, boot_info_t *bi, UINTN *mapKey)
 {
     EFI_STATUS status;
-    // UINTN map_key, desc_size;
-    // UINT32 desc_version;
-    // status = uefi_call_wrapper(BS->GetMemoryMap, ...); // standard procedure
-    // if (EFI_ERROR(status))
-    // {
-    //     Print(L"Could not get memory map: %r\n", status);
-    //     return status;
-    // }
-    // status = uefi_call_wrapper(BS->ExitBootServices, 2, ImageHandle, map_key);
-    // if (EFI_ERROR(status))
-    // {
-    //     Print(L"Could not exit boot services: %r\n", status);
-    //     return status;
-    // }
+
+    UINTN mapSize = 0, descSize;
+    UINT32 descVersion;
+    EFI_MEMORY_DESCRIPTOR *memMap = NULL;
+
+    uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5,
+                      &mapSize, memMap, mapKey, &descSize, &descVersion);
+
+    // Allocate space
+    mapSize += descSize * 8; // Safety margin
+    uefi_call_wrapper(SystemTable->BootServices->AllocatePool, 3, EfiLoaderData, mapSize, (void **)&memMap);
+
+    // Now get the actual map
+    status = uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5,
+                               &mapSize, memMap, mapKey, &descSize, &descVersion);
+    if (EFI_ERROR(status))
+    {
+        Print(L"Could not get memory map: %r\n", status);
+        return status;
+    }
+
+    bi->memory_map.memory_map = memMap;
+    bi->memory_map.memory_map_size = mapSize;
+    bi->memory_map.descriptor_size = descSize;
+    bi->memory_map.descriptor_version = descVersion;
+
+    return EFI_SUCCESS;
+}
+
+EFI_STATUS enter_kernel(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, kernel_image_t *kernel_info, boot_info_t *bi, UINTN mapKey)
+{
+    EFI_STATUS status = uefi_call_wrapper(SystemTable->BootServices->ExitBootServices, 2,
+                                          ImageHandle, mapKey);
+    if (EFI_ERROR(status))
+    {
+        Print(L"Could not exit boot services: %r\n", status);
+        return status;
+    }
 
     Info(L"Kernel loaded. Executing...\n");
     kernel_info->entry(bi);
