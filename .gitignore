@@ -30,8 +30,12 @@
 *.exe
 *.out
 *.app
+*.elf
 *.EFI
 
 **/obj
+**/bin
 
-disk.img
+*.img
+*.gz
+.DS_Store

@@ -1,40 +1,53 @@
 .PHONY: run clean debug
 
-EFI_BINARY := BOOTX64.EFI
+ARCH := amd64
+DISK_IMG_SIZE := 64M
+DISK_IMAGE := disk.img
+EFI_BIN_FNAME := BOOTX64.EFI
 EFI_SRC := boot/efi
 EFI_OBJ := $(EFI_SRC)/obj
-IMAGE := disk.img
-IMG_SIZE := 64M
+EFI_BIN := $(EFI_SRC)/bin
+KERNEL_SRC := kernel
+KERNEL_OBJ := $(KERNEL_SRC)/obj
+KERNEL_BIN := $(KERNEL_SRC)/bin
+INITRD_IMG_FNAME := initrd.img
 
-all: $(IMAGE) run
+all: $(DISK_IMAGE) run
 
-run: $(IMAGE)
+run: $(DISK_IMAGE)
 # Use C-t to enter qemu monitor
 	qemu-system-x86_64 \
 		-m 512M \
 		-drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd \
-		-drive file=$(IMAGE),format=raw,if=virtio \
+		-drive file=$(DISK_IMAGE),format=raw,if=virtio \
 		-echr 0x14 \
 		-nographic
 
-debug: $(IMAGE)
+debug: $(DISK_IMAGE)
 # Use C-t to enter qemu monitor
 	qemu-system-x86_64 \
 		-m 512M \
 		-drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd \
-		-drive file=$(IMAGE),format=raw,if=virtio \
+		-drive file=$(DISK_IMAGE),format=raw,if=virtio \
 		-echr 0x14 \
 		-s -S \
 		-nographic
 
-$(IMAGE): $(EFI_SRC)/$(EFI_BINARY)
-	qemu-img create -f raw $(IMAGE) $(IMG_SIZE)
-	mkfs.fat -F 32 $(IMAGE)
-	mmd -i $(IMAGE) ::/EFI
-	mmd -i $(IMAGE) ::/EFI/BOOT
-	mcopy -i $(IMAGE) $(EFI_SRC)/$(EFI_BINARY) ::/EFI/BOOT/
+$(DISK_IMAGE): $(EFI_BIN)/$(EFI_BIN_FNAME) $(EFI_BIN)/$(INITRD_IMG_FNAME)
+	qemu-img create -f raw $(DISK_IMAGE) $(DISK_IMG_SIZE)
+	mkfs.fat -F 32 $(DISK_IMAGE)
+	mmd -i $(DISK_IMAGE) ::/EFI
+	mmd -i $(DISK_IMAGE) ::/EFI/BOOT
+	mcopy -i $(DISK_IMAGE) $(EFI_BIN)/$(EFI_BIN_FNAME) ::/EFI/BOOT/
+	mcopy -i $(DISK_IMAGE) $(EFI_BIN)/$(INITRD_IMG_FNAME) ::/
 
-.SECONDARY: $(EFI_OBJ)/main.o $(EFI_OBJ)/main.so
+# $(EFI_OBJ)/miniz.o: third_party/miniz.c
+# 	mkdir -p $(EFI_OBJ)
+# 	clang -target x86_64-unknown-linux-gnu \
+# 		-DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ARCHIVE_APIS -DMINIZ_NO_STDIO -DMINIZ_NO_MALLOC \
+# 		-ffreestanding -fno-stack-protector -mno-red-zone -fshort-wchar -nostdlib -fvisibility=hidden \
+# 		-Ithird_party/include \
+# 		-c $< -o $@
 
 $(EFI_OBJ)/main.o: $(EFI_SRC)/main.c
 	mkdir -p $(EFI_OBJ)
@@ -42,25 +55,58 @@ $(EFI_OBJ)/main.o: $(EFI_SRC)/main.c
 		-ffreestanding -fno-stack-protector \
 		-fshort-wchar -mno-red-zone -fvisibility=hidden \
 		-I/usr/local/include/efi -I/usr/local/include/efi/x86_64 \
-		-c $(EFI_SRC)/main.c -o $(EFI_OBJ)/main.o
+		-Iboot/include -Ithird_party/include -Iinclude \
+		-c $< -o $@
 
-$(EFI_OBJ)/main.so: $(EFI_OBJ)/main.o
+$(EFI_OBJ)/main.so: $(EFI_OBJ)/main.o #$(EFI_OBJ)/miniz.o
+	mkdir -p $(EFI_BIN)
 	x86_64-linux-gnu-ld -nostdlib \
 		-znocombreloc \
 		-T /usr/local/lib/elf_x86_64_efi.lds \
 		-shared -Bsymbolic \
 		-L/usr/local/lib \
-		/usr/local/lib/crt0-efi-x86_64.o $(EFI_OBJ)/main.o \
-		-lefi -lgnuefi -o $(EFI_OBJ)/main.so
+		/usr/local/lib/crt0-efi-x86_64.o $< \
+		-lefi -lgnuefi -o $@
 
-$(EFI_SRC)/$(EFI_BINARY): $(EFI_OBJ)/main.so
+$(EFI_BIN)/$(EFI_BIN_FNAME): $(EFI_OBJ)/main.so
+	mkdir -p $(EFI_BIN)
 	x86_64-linux-gnu-objcopy -j .text -j .sdata -j .data \
 		-j .dynamic -j .rodata \
 		-j .rel* -j .rela* \
 		--target=efi-app-x86_64 \
-		$(EFI_OBJ)/main.so $(EFI_SRC)/$(EFI_BINARY)
+		$(EFI_OBJ)/main.so $(EFI_BIN)/$(EFI_BIN_FNAME)
+
+$(KERNEL_OBJ)/asm.o: kernel/arch/$(ARCH)/asm.S
+	mkdir -p $(KERNEL_OBJ)
+	x86_64-linux-gnu-gcc -c -m64 -ffreestanding -o $@ $<
+
+$(KERNEL_OBJ)/main.o: kernel/main.c
+	mkdir -p $(KERNEL_OBJ)
+	clang -target x86_64-unknown-elf -ffreestanding -nostdlib -fno-pic -c \
+		-Ikernel/include \
+		$< -o $@
+
+$(KERNEL_OBJ)/boot.o: kernel/boot.c
+	mkdir -p $(KERNEL_OBJ)
+	clang -target x86_64-unknown-elf -ffreestanding -nostdlib -fno-pic -c \
+		-Iboot/include -Ikernel/include \
+		$< -o $@
+
+$(KERNEL_BIN)/kernel.elf: $(KERNEL_OBJ)/boot.o $(KERNEL_OBJ)/main.o $(KERNEL_OBJ)/asm.o
+	mkdir -p $(KERNEL_BIN)
+	x86_64-linux-gnu-ld -nostdlib -z max-page-size=0x1000 -z noexecstack \
+		-T kernel/link.ld -o $@ $(KERNEL_OBJ)/*.o
+
+$(EFI_BIN)/$(INITRD_IMG_FNAME): $(KERNEL_BIN)/kernel.elf
+	mkdir -p $(KERNEL_OBJ)/initrd
+	cp $(KERNEL_BIN)/kernel.elf $(KERNEL_OBJ)/initrd/
+	cd $(KERNEL_OBJ)/initrd && find . | cpio -o --format=newc > ../$(INITRD_IMG_FNAME)
+	mv $(KERNEL_OBJ)/$(INITRD_IMG_FNAME) $(EFI_BIN)/
+#	gzip -f $(EFI_BIN)/$(INITRD_IMG_FNAME)
 
 clean:
-	$(RM) $(IMAGE)
-	$(RM) $(EFI_SRC)/BOOTX64.EFI
+	$(RM) $(DISK_IMAGE)
 	$(RM) -r $(EFI_OBJ)
+	$(RM) -r $(EFI_BIN)
+	$(RM) -r $(KERNEL_OBJ)
+	$(RM) -r $(KERNEL_BIN)

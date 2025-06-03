@@ -28,3 +28,4 @@ RUN apt update && apt install -y \
     binutils nasm clang cmake qemu-system-x86 ovmf \
     mtools dosfstools qemu-utils
 RUN apt install -y gcc-x86-64-linux-gnu
+RUN apt install -y cpio

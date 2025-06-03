@@ -5,7 +5,11 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/usr/local/include/efi",
-                "/usr/local/include/efi/x86_64"
+                "/usr/local/include/efi/x86_64",
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/boot/include",
+                "${workspaceFolder}/kernel/include",
+                "${workspaceFolder}/third_party/include"
             ],
             "defines": [
                 "__x86_64__"
