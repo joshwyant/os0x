@@ -32,6 +32,7 @@ EFI_STATUS load_boot_image(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 EFI_STATUS load_kernel(void *elf_data, size_t elf_size, kernel_image_t *out);
 EFI_STATUS enter_kernel(EFI_HANDLE ImageHandle, kernel_image_t *kernel_info, boot_info_t *bi);
 void fill_graphics_info(EFI_SYSTEM_TABLE *SystemTable, boot_info_t *bi);
+void clear_screen(boot_info_t *bi, uint32_t color);
 void wait_for_key(EFI_SYSTEM_TABLE *SystemTable);
 
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
@@ -48,7 +49,8 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
         .magic = BOOTINFO_MAGIC,
     };
     fill_graphics_info(SystemTable, &bi);
-    // TODO: InitRD image info, too
+
+    clear_screen(&bi, 0x00181825); // catppuccin mocha mantle
 
     Info(L"Loading initrd.img...\n");
     status = load_boot_image(ImageHandle, SystemTable, &bi);
@@ -281,4 +283,16 @@ EFI_STATUS enter_kernel(EFI_HANDLE ImageHandle, kernel_image_t *kernel_info, boo
 
     // Should kernel return
     return EFI_SUCCESS;
+}
+
+void clear_screen(boot_info_t *bi, uint32_t color)
+{
+    for (int y = 0; y < bi->framebuffer_height; y++)
+    {
+        uint32_t *p = (bi->framebuffer_base + y * bi->pixels_per_scanline);
+        for (int x = 0; x < bi->framebuffer_width; x++)
+        {
+            p[x] = color;
+        }
+    }
 }
