@@ -8,38 +8,35 @@ KERNEL_TARGET := x86_64-unknown-elf
 KERNEL_AS := x86_64-linux-gnu-gcc
 KERNEL_LD := x86_64-linux-gnu-ld
 KERNEL_CC := clang
-KERNEL_SRC := .
-KERNEL_OBJ := $(KERNEL_SRC)/obj
-KERNEL_OBJS := $(KERNEL_OBJ)/uefi.o $(KERNEL_OBJ)/main.o $(KERNEL_OBJ)/asm.o $(KERNEL_OBJ)/lib/string.o
-KERNEL_BIN := $(KERNEL_SRC)/bin
+KERNEL_OBJS := obj/uefi.o obj/main.o obj/asm.o obj/lib/string.o
 KERNEL_DEFINES := 
 KERNEL_CFLAGS := -target $(KERNEL_TARGET) -ffreestanding -nostdlib -fno-builtin -fno-pic -c -MMD -MP
 KERNEL_ASFLAGS := -ffreestanding -m64 -c -MMD -MP
-KERNEL_INCLUDE := $(INCLUDES) $(EFI_INCLUDES) -I$(KERNEL_SRC)/include
+KERNEL_INCLUDE := $(INCLUDES) $(EFI_INCLUDES) -Iinclude
 KERNEL_CC_INVOKE := $(KERNEL_CC) $(KERNEL_CFLAGS) $(KERNEL_DEFINES) $(KERNEL_INCLUDE)
 
-all: $(KERNEL_BIN)/kernel.elf
+all: bin/kernel.elf
 
 rebuild: clean all
 
-$(KERNEL_OBJ):
+obj:
 	@mkdir -p $@ $@/lib
 
-$(KERNEL_BIN):
+bin:
 	@mkdir -p $@
 
-$(KERNEL_OBJ)/%.o: $(KERNEL_SRC)/arch/$(ARCH)/%.S | $(KERNEL_OBJ)
+obj/%.o: arch/$(ARCH)/%.S | obj
 	$(KERNEL_AS) $(KERNEL_ASFLAGS) -o $@ $<
 
-$(KERNEL_OBJ)/%.o: $(KERNEL_SRC)/%.c | $(KERNEL_OBJ)
+obj/%.o: %.c | obj
 	$(KERNEL_CC_INVOKE) $< -o $@
 
-$(KERNEL_BIN)/kernel.elf: $(KERNEL_OBJS) | $(KERNEL_BIN)
+bin/kernel.elf: $(KERNEL_OBJS) | bin
 	$(KERNEL_LD) -nostdlib -z max-page-size=0x1000 -z noexecstack \
-		-T $(KERNEL_SRC)/link.ld -o $@ $(KERNEL_OBJ)/**/*.o
+		-T link.ld -o $@ obj/**/*.o
 
 clean:
-	$(RM) -r $(KERNEL_OBJ)
-	$(RM) -r $(KERNEL_BIN)
+	$(RM) -r obj
+	$(RM) -r bin
 
--include $(wildcard $(KERNEL_OBJ)/*.d)
+-include $(wildcard obj/*.d)

@@ -2,7 +2,7 @@
 #include "kernel.h"
 #include "boot/bootinfo.h"
 
-void clear_screen(uint32_t color, uint32_t *frame_buffer, int width, int height, int pitch);
+static void clear_screen(boot_info_t *bi, uint32_t color);
 void parse_memory_map(boot_memmap_t *map_info);
 
 void kernel_boot(boot_info_t *bootInfo)
@@ -11,11 +11,10 @@ void kernel_boot(boot_info_t *bootInfo)
     if (bootInfo == NULL || bootInfo->magic != BOOTINFO_MAGIC)
         freeze();
 
-    // Make a local copy
-    boot_info_t bi = *bootInfo;
+    clear_screen(bootInfo, 0x0000FF);
 
     // Do something with the memory map:
-    parse_memory_map(&bi.memory_map);
+    parse_memory_map(&bootInfo->memory_map);
 
     kernel_main();
 
@@ -37,6 +36,18 @@ void parse_memory_map(boot_memmap_t *map_info)
             uint64_t base = d->PhysicalStart;
             uint64_t size = d->NumberOfPages * 4096;
             // Use base/size for your allocator or memory map
+        }
+    }
+}
+
+static void clear_screen(boot_info_t *bi, uint32_t color)
+{
+    for (int y = 0; y < bi->graphics_info.framebuffer_height; y++)
+    {
+        uint32_t *p = (bi->graphics_info.framebuffer_base + y * bi->graphics_info.pixels_per_scanline);
+        for (int x = 0; x < bi->graphics_info.framebuffer_width; x++)
+        {
+            p[x] = color;
         }
     }
 }

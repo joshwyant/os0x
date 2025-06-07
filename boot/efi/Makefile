@@ -1,54 +1,57 @@
 .PHONY: all clean rebuild
 
+ARCH := amd64
 EFI_TARGET := x86_64-unknown-linux-gnu
 EFI_CC := clang
+EFI_AS := x86_64-linux-gnu-gcc
 EFI_PREFIX ?= /usr/local
 EFI_BIN_FNAME := BOOTX64.EFI
-EFI_SRC := .
-EFI_OBJ := $(EFI_SRC)/obj
-EFI_BIN := $(EFI_SRC)/bin
-EFI_OBJS := $(EFI_PREFIX)/lib/crt0-efi-x86_64.o $(EFI_OBJ)/main.o
+EFI_OBJS := $(EFI_PREFIX)/lib/crt0-efi-x86_64.o obj/main.o obj/asm.o
 EFI_DEFINES := -DQUIET
 EFI_CFLAGS := -target $(EFI_TARGET) -ffreestanding -fno-stack-protector -mno-red-zone -fshort-wchar -nostdlib -fvisibility=hidden -c -MMD -MP
+EFI_ASFLAGS := -ffreestanding -m64 -c -MMD -MP
 INCLUDES := -I../../include
 EFI_INCLUDES := -I../include -I$(EFI_PREFIX)/include/efi -I$(EFI_PREFIX)/include/efi/x86_64
-EFI_INCLUDE := $(INCLUDES) $(EFI_INCLUDES) -I$(EFI_SRC)/include -I../../third_party/include
+EFI_INCLUDE := $(INCLUDES) $(EFI_INCLUDES) -Iinclude -I../../third_party/include
 EFI_CC_INVOKE := $(EFI_CC) $(EFI_CFLAGS) $(EFI_DEFINES) $(EFI_INCLUDE)
 
-all: $(EFI_BIN)/$(EFI_BIN_FNAME)
+all: bin/$(EFI_BIN_FNAME)
 
 rebuild: clean all
 
-$(EFI_OBJ):
+obj:
 	@mkdir -p $@
 
-$(EFI_BIN):
+bin:
 	@mkdir -p $@
 
-# $(EFI_OBJ)/miniz.o: third_party/miniz.c | $(EFI_OBJ)
+# obj/miniz.o: third_party/miniz.c | obj
 # 	clang -target $(EFI_CFLAGS) \
 # 		-Ithird_party/include -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ARCHIVE_APIS -DMINIZ_NO_STDIO -DMINIZ_NO_MALLOC \
 # 		$< -o $@
 
-$(EFI_OBJ)/%.o: $(EFI_SRC)/%.c | $(EFI_OBJ)
+obj/%.o: arch/$(ARCH)/%.S | obj
+	$(EFI_AS) $(EFI_ASFLAGS) -o $@ $<
+
+obj/%.o: %.c | obj
 	$(EFI_CC_INVOKE) $< -o $@
 
-$(EFI_OBJ)/main.so: $(EFI_OBJS) | $(EFI_OBJ)
+obj/main.so: $(EFI_OBJS) | obj
 	x86_64-linux-gnu-ld \
 		-nostdlib -znocombreloc -shared -Bsymbolic \
 		-T $(EFI_PREFIX)/lib/elf_x86_64_efi.lds \
 		-L$(EFI_PREFIX)/lib \
 		$^ -lefi -lgnuefi -o $@
 
-$(EFI_BIN)/$(EFI_BIN_FNAME): $(EFI_OBJ)/main.so | $(EFI_BIN)
+bin/$(EFI_BIN_FNAME): obj/main.so | bin
 	x86_64-linux-gnu-objcopy -j .text -j .sdata -j .data \
 		-j .dynamic -j .rodata \
 		-j .rel* -j .rela* \
 		--target=efi-app-x86_64 \
-		$(EFI_OBJ)/main.so $(EFI_BIN)/$(EFI_BIN_FNAME)
+		obj/main.so bin/$(EFI_BIN_FNAME)
 
 clean:
-	$(RM) -r $(EFI_OBJ)
-	$(RM) -r $(EFI_BIN)
+	$(RM) -r obj
+	$(RM) -r bin
 
--include $(wildcard $(EFI_OBJ)/*.d)
+-include $(wildcard obj/*.d)

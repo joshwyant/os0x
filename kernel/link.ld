@@ -1,28 +1,30 @@
 OUTPUT_FORMAT(elf64-x86-64)
 ENTRY(kernel_boot)
 
+KERNEL_VMA = 0xFFFFFF0000000000;
+
 SECTIONS
 {
-  /* Load kernel at 1MB */
-  . = 1M;
+  . = KERNEL_VMA;
+  . += ALIGN(0x1000);
 
-  /* Text/code section */
-  .text : {
+  .text : ALIGN(0x1000)
+  {
     *(.text .text.*)
   }
 
-  /* Read-only data */
-  .rodata : {
+  .rodata : ALIGN(0x1000)
+  {
     *(.rodata .rodata.*)
   }
 
-  /* Initialized data */
-  .data : {
+  .data : ALIGN(0x1000)
+  {
     *(.data .data.*)
   }
 
-  /* BSS (zero-initialized data) */
-  .bss : {
+  .bss : ALIGN(0x1000)
+  {
     *(COMMON)
     *(.bss .bss.*)
   }
@@ -31,4 +33,7 @@ SECTIONS
   /DISCARD/ : {
     *(.eh_frame .note .comment)
   }
+
+  . = ALIGN(0x1000);
+  _kernel_end = .;
 }

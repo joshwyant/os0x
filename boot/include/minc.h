@@ -5,6 +5,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define strtoul(a, b, c) _strtoul(a)
+#define strncmp(a, b, c) _strncmp(a, b, c)
+#define strlen(a) _strlen(a)
+#define memcpy(a, b, c) _memcpy(a, b, c)
+// #define memset(a, b, c) _memset(a, b, c)
+#define memcmp(a, b, c) _memcmp(a, b, c)
+
 static uint32_t _strtoul(const char *p)
 {
     uint32_t n = 0;
@@ -66,7 +73,7 @@ static void _memset(unsigned char *dest, unsigned char val, size_t n)
 
 static int _memcmp(const void *a, const void *b, size_t n)
 {
-    const unsigned char *pa = (const unsigned char *)a, *pb = (unsigned char *)b;
+    const unsigned char *pa = (const unsigned char *)a, *pb = (const unsigned char *)b;
     for (size_t i = 0; i < n; i++)
     {
         if (pa[i] != pb[i])
