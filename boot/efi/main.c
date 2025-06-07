@@ -26,6 +26,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 
     InfoLine("os0x, an experimental operating system");
     InfoLine("Copyright (c) 2025 Josh Wyant");
+
     LogLine0(Debug);
     DebugLine("Press C-t x in the terminal to exit Qemu monitor.");
 
@@ -47,8 +48,8 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
     TRYWRAPFNS(measure_kernel(kernel, kernel_size, &kernel_info),
                "Failed to measure the kernel size");
 
-    TraceLine("Creating page tables...");
     page_table_physical_address_t page_table;
+    TraceLine("Creating page tables...");
     TRYWRAPFNS(create_page_tables(&page_table),
                "Failed to create page tables");
 
@@ -81,9 +82,6 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 
 EFI_STATUS load_boot_image(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, boot_info_t *bi)
 {
-    // We use uefi_call_wrapper because we're using gnu-efi, which has to translate the gcc-based calling convention
-    // to the win32 calls of UEFI.
-
     EFI_STATUS status;
     EFI_LOADED_IMAGE *LoadedImage;
     EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *FileSystem;

@@ -13,6 +13,7 @@
 
 #define STACK_SIZE 0x10000 // 64kb
 
+// Add debug information to a message
 #define DEBUGPREFIX(type) __FILE__ ":" LINE_STRING ": " #type ": "
 #define Error(msg, ...) Log(ErrorLevel, DEBUGPREFIX(Error) msg, __VA_ARGS__)
 #define Info(msg, ...) Log(InfoLevel, msg, __VA_ARGS__)
@@ -40,8 +41,12 @@
 #define STRINGIZE(x) STRINGIZE2(x)
 #define STRINGIZE2(x) #x
 #define LINE_STRING STRINGIZE(__LINE__)
+// Wraps the error checking blocks in the uefi call wrapper
+// We use uefi_call_wrapper because we're using gnu-efi, which has to translate the gcc-based calling convention
+// to the win32 calls of UEFI.
 #define TRYWRAP(tuple, ...) TRYWRAPFN(uefi_call_wrapper tuple, __VA_ARGS__)
 #define TRYWRAPS(tuple, msg, ...) TRYWRAPFNS(uefi_call_wrapper tuple, msg, __VA_ARGS__)
+// DRY... this is used dozens of times and even widens strings and adds newlines.
 #define TRYWRAPFN(fn, ...)                      \
     do                                          \
         if (EFI_ERROR((status = fn)))           \
@@ -50,6 +55,7 @@
             return status;                      \
         }                                       \
     while (0)
+// Same as TRYWRAPFN but also adds %r to print out a friendly status string.
 #define TRYWRAPFNS(fn, msg, ...) TRYWRAPFN(fn, msg ": %r", __VA_ARGS__ __VA_OPT__(, ) status)
 #define TRYEXPR(expr, ret, ...)                 \
     do                                          \
