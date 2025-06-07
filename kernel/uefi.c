@@ -7,10 +7,11 @@ void parse_memory_map(boot_memmap_t *map_info);
 
 void kernel_boot(boot_info_t *bootInfo)
 {
+    for (;;)
+        ;
     // Sanity check: basic boot info validation
     if (bootInfo == NULL || bootInfo->magic != BOOTINFO_MAGIC)
         freeze();
-
     clear_screen(bootInfo, 0x0000FF);
 
     // Do something with the memory map:

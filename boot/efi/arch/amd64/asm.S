@@ -2,10 +2,18 @@
 .intel_syntax noprefix
 .global trampoline
 trampoline:
+    cli
+
     mov rax, rdi           // New cr3 in rdi
+    
     mov rsp, rsi           // New stack in rsi
     mov rdi, rdx           // Boot info in rdx
-    mov rax, cr3           // Switch to new page table
+
+    freeze:
+    hlt
+    jmp freeze
+
+    mov cr3, rax           // Switch to new page table
 
     jmp rcx                // Kernel entry in rcx
 

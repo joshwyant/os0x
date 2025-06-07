@@ -9,7 +9,7 @@
 #define strncmp(a, b, c) _strncmp(a, b, c)
 #define strlen(a) _strlen(a)
 #define memcpy(a, b, c) _memcpy(a, b, c)
-// #define memset(a, b, c) _memset(a, b, c)
+#define memset(a, b, c) _memset(a, b, c)
 #define memcmp(a, b, c) _memcmp(a, b, c)
 
 static uint32_t _strtoul(const char *p)
@@ -65,10 +65,10 @@ static void *_memcpy(void *dest, const void *src, size_t n)
     return dest;
 }
 
-static void _memset(unsigned char *dest, unsigned char val, size_t n)
+static void _memset(void *dest, unsigned char val, size_t n)
 {
     while (n--)
-        *(dest++) = val;
+        *((unsigned char *)dest++) = val;
 }
 
 static int _memcmp(const void *a, const void *b, size_t n)

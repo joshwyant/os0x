@@ -1,12 +1,11 @@
 OUTPUT_FORMAT(elf64-x86-64)
 ENTRY(kernel_boot)
 
-KERNEL_VMA = 0xFFFFFF0000000000;
+. = 0xFFFFFF0000000000;
 
 SECTIONS
 {
-  . = KERNEL_VMA;
-  . += ALIGN(0x1000);
+  KERNEL_VMA = .;
 
   .text : ALIGN(0x1000)
   {
