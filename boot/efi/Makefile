@@ -6,7 +6,7 @@ EFI_CC := clang
 EFI_AS := x86_64-linux-gnu-gcc
 EFI_PREFIX ?= /usr/local
 EFI_BIN_FNAME := BOOTX64.EFI
-EFI_OBJS := $(EFI_PREFIX)/lib/crt0-efi-x86_64.o obj/main.o obj/asm.o
+EFI_OBJS := $(EFI_PREFIX)/lib/crt0-efi-x86_64.o obj/main.o obj/virtual.o obj/asm.o
 EFI_DEFINES := -DQUIET
 EFI_CFLAGS := -target $(EFI_TARGET) -ffreestanding -fno-stack-protector -mno-red-zone -fshort-wchar -nostdlib -fvisibility=hidden -c -MMD -MP
 EFI_ASFLAGS := -ffreestanding -m64 -c -MMD -MP

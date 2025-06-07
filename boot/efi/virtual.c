@@ -1,21 +1,20 @@
 #include "main.h"
 
-EFI_STATUS load_kernel(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, const void *kernel, size_t kernel_size, boot_info_t *bi, page_table_physical_ptr_t pageTable)
+EFI_STATUS load_kernel(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, const void *kernel, size_t kernel_size, boot_info_t *bi)
 {
     EFI_STATUS status;
     kernel_image_t kernel_info;
+    page_table_physical_ptr_t pageTable;
 
     TraceLine("Measuring kernel size...");
     TRYWRAPFNS(measure_kernel(kernel, kernel_size, &kernel_info),
                "Failed to measure the kernel size");
 
-    page_table_physical_address_t page_table;
     TraceLine("Creating page tables...");
-    TRYWRAPFNS(create_page_tables(&page_table),
+    TRYWRAPFNS(create_page_tables((page_table_physical_address_t *)&pageTable),
                "Failed to create page tables");
 
     virtual_address_t stack_pointer;
-    page_table_physical_ptr_t pageTable = (page_table_physical_ptr_t)page_table;
     TraceLine("Mapping virtual address space...");
     TRYWRAPFNS(map_virtual_address_space(SystemTable, &kernel_info, bi, &stack_pointer, pageTable),
                "Failed to map virtual address space");
@@ -26,11 +25,11 @@ EFI_STATUS load_kernel(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, co
 
     UINTN mapKey;
     TraceLine("Getting system memory map...");
-    TRYWRAPFNS(get_memmap(SystemTable, &bi, &mapKey),
+    TRYWRAPFNS(get_memmap(SystemTable, bi, &mapKey),
                "Failed to get memory map");
 
     TraceLine("Calling kernel entry point...");
-    TRYWRAPFNS(enter_kernel(ImageHandle, SystemTable, &kernel_info, stack_pointer, page_table, &bi, mapKey),
+    TRYWRAPFNS(enter_kernel(ImageHandle, SystemTable, &kernel_info, stack_pointer, (page_table_physical_address_t)pageTable, bi, mapKey),
                "Failed to call kernel entry point");
 
     return EFI_SUCCESS;
@@ -67,7 +66,7 @@ EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, kernel_image
     stack_pointer_out = (virtual_address_ptr_t)(next_page + EFI_PAGE_SIZE // guard page
                                                 + STACK_SIZE);            // Top of the stack
     int stack_pages = EFI_SIZE_TO_PAGES(STACK_SIZE);
-    TRYWRAPFNS(get_mp_info(SystemTable, &bi, &cpuCount),
+    TRYWRAPFNS(get_mp_info(SystemTable, bi, &cpuCount),
                "Failed to get CPU count");
     for (int i = 0; i < cpuCount; i++)
     {
