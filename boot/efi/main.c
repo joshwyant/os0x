@@ -37,40 +37,15 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 
     size_t kernel_size;
     const void *kernel;
-    TraceLine("Looking for kernel...");
+    TraceLine("Looking for kernel in initrd.img...");
     TRYEXPR(
         kernel = find_cpio_file((cpio_file_base_ptr_t)(void *)bi.initrd_base, bi.initrd_size, "kernel.elf", &kernel_size),
         EFI_LOAD_ERROR, "Could not locate kernel.elf in initrd.img!");
     TraceLine("Kernel found.");
 
-    kernel_image_t kernel_info;
-    TraceLine("Measuring kernel size...");
-    TRYWRAPFNS(measure_kernel(kernel, kernel_size, &kernel_info),
-               "Failed to measure the kernel size");
-
-    page_table_physical_address_t page_table;
-    TraceLine("Creating page tables...");
-    TRYWRAPFNS(create_page_tables(&page_table),
-               "Failed to create page tables");
-
-    virtual_address_t stack_pointer;
-    page_table_physical_ptr_t pageTable = (page_table_physical_ptr_t)page_table;
-    TraceLine("Mapping virtual address space...");
-    TRYWRAPFNS(map_virtual_address_space(SystemTable, &kernel_info, &bi, &stack_pointer, pageTable),
-               "Failed to map virtual address space");
-
-    TraceLine("Mapping kernel into virtual memory...");
-    TRYWRAPFNS(load_kernel(kernel, kernel_size, &kernel_info, pageTable),
-               "Failed to map the kernel into virtual memory");
-
-    UINTN mapKey;
-    TraceLine("Getting system memory map...");
-    TRYWRAPFNS(get_memmap(SystemTable, &bi, &mapKey),
-               "Failed to get memory map");
-
-    TraceLine("Calling kernel entry point...");
-    TRYWRAPFNS(enter_kernel(ImageHandle, SystemTable, &kernel_info, stack_pointer, page_table, &bi, mapKey),
-               "Failed to call kernel entry point");
+    TraceLine("Loading the kernel...");
+    TRYWRAPFNS(load_kernel(ImageHandle, SystemTable, kernel, kernel_size, &bi),
+               "Failed to load the kernel");
 
     InfoLine("Kernel returned.");
     AsciiPrintLine("Press any key to exit to UEFI...");
@@ -153,19 +128,6 @@ EFI_STATUS load_boot_image(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
     bi->initrd_base = (uint32_t *)(uintptr_t)buffer;
     bi->initrd_size = fileSize;
 
-    return EFI_SUCCESS;
-}
-
-EFI_STATUS enter_kernel(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, kernel_image_t *kernel_info, virtual_address_t stack_pointer, page_table_physical_address_t page_table, boot_info_t *bi, UINTN mapKey)
-{
-    EFI_STATUS status;
-    TRYWRAPS((SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mapKey),
-             "Could not exit boot services");
-
-    InfoLine("Kernel loaded. Executing...");
-    trampoline(page_table, stack_pointer, (physical_address_t)bi, (virtual_address_t)kernel_info->entry);
-
-    // Should kernel return
     return EFI_SUCCESS;
 }
 

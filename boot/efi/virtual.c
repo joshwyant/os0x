@@ -1,31 +1,104 @@
 #include "main.h"
 
-EFI_STATUS measure_kernel(const void *elf_data, size_t elf_size, kernel_image_t *out)
+EFI_STATUS load_kernel(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, const void *kernel, size_t kernel_size, boot_info_t *bi, page_table_physical_ptr_t pageTable)
 {
-    Elf64_Ehdr *ehdr = (Elf64_Ehdr *)elf_data;
-    uint8_t elfmag[] = {ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3};
-    if (_memcmp(ehdr->e_ident, elfmag, sizeof(elfmag)))
-    {
-        ErrorLine("ELF header mismatch!");
-        return EFI_LOAD_ERROR;
-    }
+    EFI_STATUS status;
+    kernel_image_t kernel_info;
 
-    Elf64_Phdr *phdrs = (Elf64_Phdr *)((uint8_t *)elf_data + ehdr->e_phoff);
-    out->kernel_page_count = 0;
-    for (int i = 0; i < ehdr->e_phnum; ++i)
-    {
-        Elf64_Phdr *ph = &phdrs[i];
-        if (ph->p_type != PT_LOAD)
-            continue;
+    TraceLine("Measuring kernel size...");
+    TRYWRAPFNS(measure_kernel(kernel, kernel_size, &kernel_info),
+               "Failed to measure the kernel size");
 
-        out->kernel_page_count += EFI_SIZE_TO_PAGES(ph->p_memsz);
-    }
+    page_table_physical_address_t page_table;
+    TraceLine("Creating page tables...");
+    TRYWRAPFNS(create_page_tables(&page_table),
+               "Failed to create page tables");
 
-    out->kernel_virtual_base = (virtual_address_t)phdrs[0].p_vaddr;
+    virtual_address_t stack_pointer;
+    page_table_physical_ptr_t pageTable = (page_table_physical_ptr_t)page_table;
+    TraceLine("Mapping virtual address space...");
+    TRYWRAPFNS(map_virtual_address_space(SystemTable, &kernel_info, bi, &stack_pointer, pageTable),
+               "Failed to map virtual address space");
+
+    TraceLine("Mapping the kernel into virtual memory...");
+    TRYWRAPFNS(map_kernel(kernel, kernel_size, &kernel_info, pageTable),
+               "Failed to map the kernel into virtual memory");
+
+    UINTN mapKey;
+    TraceLine("Getting system memory map...");
+    TRYWRAPFNS(get_memmap(SystemTable, &bi, &mapKey),
+               "Failed to get memory map");
+
+    TraceLine("Calling kernel entry point...");
+    TRYWRAPFNS(enter_kernel(ImageHandle, SystemTable, &kernel_info, stack_pointer, page_table, &bi, mapKey),
+               "Failed to call kernel entry point");
+
     return EFI_SUCCESS;
 }
 
-EFI_STATUS load_kernel(const void *elf_data, size_t elf_size, kernel_image_t *out, page_table_physical_ptr_t pageTable)
+EFI_STATUS enter_kernel(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, kernel_image_t *kernel_info, virtual_address_t stack_pointer, page_table_physical_address_t page_table, boot_info_t *bi, UINTN mapKey)
+{
+    EFI_STATUS status;
+    TRYWRAPS((SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mapKey),
+             "Could not exit boot services");
+
+    InfoLine("Kernel loaded. Executing...");
+    trampoline(page_table, stack_pointer, (physical_address_t)bi, (virtual_address_t)kernel_info->entry);
+
+    // Should kernel return
+    return EFI_SUCCESS;
+}
+
+EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, kernel_image_t *kernel_info, boot_info_t *bi, virtual_address_ptr_t stack_pointer_out, page_table_physical_ptr_t pageTable)
+{
+    EFI_STATUS status;
+    UINTN cpuCount;
+
+    // Map in the boot info as a physical location, and update boot info
+    page_physical_address_t boot_info_start = (page_physical_address_t)bi & ~PAGE_MASK;
+    page_physical_address_t boot_info_end = ((page_physical_address_t)bi + sizeof(boot_info_t) + PAGE_MASK) & ~PAGE_MASK;
+    size_t boot_info_pages = (boot_info_start - boot_info_end) >> 12;
+    TRYWRAPFN(map_pages(boot_info_start, boot_info_start, PAGE_PRESENT | PAGE_RW | PAGE_NX, boot_info_pages, pageTable));
+
+    // Skip past the kernel image sections for now, those need special page permissions
+    page_virtual_address_t next_page = kernel_info->kernel_virtual_base + kernel_info->kernel_page_count * EFI_PAGE_SIZE;
+
+    // Map in the stacks
+    stack_pointer_out = (virtual_address_ptr_t)(next_page + EFI_PAGE_SIZE // guard page
+                                                + STACK_SIZE);            // Top of the stack
+    int stack_pages = EFI_SIZE_TO_PAGES(STACK_SIZE);
+    TRYWRAPFNS(get_mp_info(SystemTable, &bi, &cpuCount),
+               "Failed to get CPU count");
+    for (int i = 0; i < cpuCount; i++)
+    {
+        next_page += EFI_PAGE_SIZE; // guard page
+        page_physical_address_t stack_addr;
+        TRYWRAPFN(map_new_pages(next_page, &stack_addr, PAGE_PRESENT | PAGE_RW | PAGE_NX, stack_pages, pageTable));
+
+        // Zero it out
+        uefi_call_wrapper(BS->SetMem, 3, (EFI_PHYSICAL_ADDRESS *)&stack_addr, STACK_SIZE, 0);
+        next_page += STACK_SIZE;
+    }
+
+    // Map in the frame buffer
+    int framebuf_pages = EFI_SIZE_TO_PAGES(bi->graphics_info.framebuffer_size);
+    bi->graphics_info.framebuffer_virtual_base = (uint32_t *)next_page;
+    TRYWRAPFN(map_pages((page_virtual_address_t)bi->graphics_info.framebuffer_virtual_base,
+                        (page_physical_address_t)bi->graphics_info.framebuffer_base,
+                        PAGE_PRESENT | PAGE_RW | PAGE_NX,
+                        framebuf_pages, pageTable));
+    next_page += framebuf_pages * EFI_PAGE_SIZE;
+
+    // Map in initrd image
+    int initrd_pages = EFI_SIZE_TO_PAGES(bi->initrd_size);
+    TRYWRAPFN(map_pages(next_page, (page_physical_address_t)bi->initrd_base, PAGE_PRESENT | PAGE_RW | PAGE_NX, initrd_pages, pageTable));
+    bi->initrd_base = (uint32_t *)next_page; // physical to virtual
+    next_page += initrd_pages;
+
+    return EFI_SUCCESS;
+}
+
+EFI_STATUS map_kernel(const void *elf_data, size_t elf_size, kernel_image_t *out, page_table_physical_ptr_t pageTable)
 {
     Elf64_Ehdr *ehdr = (Elf64_Ehdr *)elf_data;
     uint8_t elfmag[] = {ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3};
@@ -83,6 +156,31 @@ EFI_STATUS load_kernel(const void *elf_data, size_t elf_size, kernel_image_t *ou
     out->kernel_virtual_base = (virtual_address_t)phdrs[0].p_vaddr;
     out->kernel_code_pages = EFI_SIZE_TO_PAGES(phdrs[0].p_memsz);
     out->kernel_page_count = page;
+    return EFI_SUCCESS;
+}
+
+EFI_STATUS measure_kernel(const void *elf_data, size_t elf_size, kernel_image_t *out)
+{
+    Elf64_Ehdr *ehdr = (Elf64_Ehdr *)elf_data;
+    uint8_t elfmag[] = {ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3};
+    if (_memcmp(ehdr->e_ident, elfmag, sizeof(elfmag)))
+    {
+        ErrorLine("ELF header mismatch!");
+        return EFI_LOAD_ERROR;
+    }
+
+    Elf64_Phdr *phdrs = (Elf64_Phdr *)((uint8_t *)elf_data + ehdr->e_phoff);
+    out->kernel_page_count = 0;
+    for (int i = 0; i < ehdr->e_phnum; ++i)
+    {
+        Elf64_Phdr *ph = &phdrs[i];
+        if (ph->p_type != PT_LOAD)
+            continue;
+
+        out->kernel_page_count += EFI_SIZE_TO_PAGES(ph->p_memsz);
+    }
+
+    out->kernel_virtual_base = (virtual_address_t)phdrs[0].p_vaddr;
     return EFI_SUCCESS;
 }
 
@@ -188,55 +286,6 @@ EFI_STATUS create_page_tables(page_table_physical_address_ptr_t page_table_out)
 
     // Map it in(to itself)
     TRYWRAPFN(map_page(PT_L4_BASE, (page_physical_address_t)pageTable, PAGE_RW | PAGE_NX, pageTable));
-
-    return EFI_SUCCESS;
-}
-
-EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, kernel_image_t *kernel_info, boot_info_t *bi, virtual_address_ptr_t stack_pointer_out, page_table_physical_ptr_t pageTable)
-{
-    EFI_STATUS status;
-    UINTN cpuCount;
-
-    // Map in the boot info as a physical location, and update boot info
-    page_physical_address_t boot_info_start = (page_physical_address_t)bi & ~PAGE_MASK;
-    page_physical_address_t boot_info_end = ((page_physical_address_t)bi + sizeof(boot_info_t) + PAGE_MASK) & ~PAGE_MASK;
-    size_t boot_info_pages = (boot_info_start - boot_info_end) >> 12;
-    TRYWRAPFN(map_pages(boot_info_start, boot_info_start, PAGE_PRESENT | PAGE_RW | PAGE_NX, boot_info_pages, pageTable));
-
-    // Skip past the kernel image sections for now, those need special page permissions
-    page_virtual_address_t next_page = kernel_info->kernel_virtual_base + kernel_info->kernel_page_count * EFI_PAGE_SIZE;
-
-    // Map in the stacks
-    stack_pointer_out = (virtual_address_ptr_t)(next_page + EFI_PAGE_SIZE // guard page
-                                                + STACK_SIZE);            // Top of the stack
-    int stack_pages = EFI_SIZE_TO_PAGES(STACK_SIZE);
-    TRYWRAPFNS(get_mp_info(SystemTable, &bi, &cpuCount),
-               "Failed to get CPU count");
-    for (int i = 0; i < cpuCount; i++)
-    {
-        next_page += EFI_PAGE_SIZE; // guard page
-        page_physical_address_t stack_addr;
-        TRYWRAPFN(map_new_pages(next_page, &stack_addr, PAGE_PRESENT | PAGE_RW | PAGE_NX, stack_pages, pageTable));
-
-        // Zero it out
-        uefi_call_wrapper(BS->SetMem, 3, (EFI_PHYSICAL_ADDRESS *)&stack_addr, STACK_SIZE, 0);
-        next_page += STACK_SIZE;
-    }
-
-    // Map in the frame buffer
-    int framebuf_pages = EFI_SIZE_TO_PAGES(bi->graphics_info.framebuffer_size);
-    bi->graphics_info.framebuffer_virtual_base = (uint32_t *)next_page;
-    TRYWRAPFN(map_pages((page_virtual_address_t)bi->graphics_info.framebuffer_virtual_base,
-                        (page_physical_address_t)bi->graphics_info.framebuffer_base,
-                        PAGE_PRESENT | PAGE_RW | PAGE_NX,
-                        framebuf_pages, pageTable));
-    next_page += framebuf_pages * EFI_PAGE_SIZE;
-
-    // Map in initrd image
-    int initrd_pages = EFI_SIZE_TO_PAGES(bi->initrd_size);
-    TRYWRAPFN(map_pages(next_page, (page_physical_address_t)bi->initrd_base, PAGE_PRESENT | PAGE_RW | PAGE_NX, initrd_pages, pageTable));
-    bi->initrd_base = (uint32_t *)next_page; // physical to virtual
-    next_page += initrd_pages;
 
     return EFI_SUCCESS;
 }
