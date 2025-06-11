@@ -9,8 +9,9 @@ OVMF := /usr/share/OVMF/OVMF_CODE_4M.fd
 QEMU_FLAGS := -m $(MEM_SIZE) \
 		-drive if=pflash,format=raw,readonly=on,file=$(OVMF) \
 		-drive file=$(DISK_IMAGE),format=raw,if=virtio \
-		-echr 0x14 \
-		-vnc :1,password=off -nographic
+		-echr 0x14 -nographic \
+		-vnc :1,password=off \
+		#-d int --no-reboot
 EFI_BIN_FNAME := BOOTX64.EFI
 EFI_SRC := boot/efi
 EFI_BIN := $(EFI_SRC)/bin

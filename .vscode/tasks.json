@@ -1,0 +1,25 @@
+{
+    "tasks": [
+        {
+            "label": "Start Debugger",
+            "type": "shell",
+            "command": "make debug",
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": [
+                    {
+                        "regexp": ".",
+                        "file": 1,
+                        "location": 2,
+                        "message": 3
+                    }
+                ],
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".",
+                    "endsPattern": ".",
+                }
+            }
+        }
+    ]
+}

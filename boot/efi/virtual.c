@@ -21,9 +21,18 @@ EFI_STATUS load_kernel(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, co
 
     //__asm__ volatile("mov %0, %%cr3" ::"r"(pageTable) : "memory");
 
-    for (int i = 0; i < 512; i++)
+    TraceLine("Listing PML4 entries:");
+
+    for (int i = 0; i < PAGE_TABLE_ENTRY_COUNT; i++)
     {
         TraceLine("Entry %d: %llp", i, (*pageTable)[i]);
+        if (i < (PAGE_TABLE_ENTRY_COUNT - 1) && (*pageTable)[i] == 0 && (*pageTable)[i + 1] == 0)
+        {
+            TraceLine("...");
+            while (i < (PAGE_TABLE_ENTRY_COUNT - 2) && (*pageTable)[i + 2] == 0)
+                i++;
+            continue;
+        }
     }
     TraceLine("Address of trampoline %llp", trampoline);
 
@@ -34,6 +43,9 @@ EFI_STATUS load_kernel(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, co
     TraceLine("Getting system memory map and calling the kernel...");
     TRYWRAPFNS(get_memmap(SystemTable, &bi->memory_map, &mapKey),
                "Failed to get memory map");
+
+    // No printing or allocation after getting the memory map
+    // TRYWRAPFN(check_addr("memory map", (virtual_address_t)bi->memory_map, (page_table_entry_physical_ptr_t)pageTable));
 
     // TraceLine("Calling kernel entry point...");
     // No printing or allocation after getting the memory map
@@ -72,7 +84,7 @@ EFI_STATUS enter_kernel(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, k
     return EFI_SUCCESS;
 }
 
-void check_addr(const char *name, virtual_address_t vaddr, page_table_entry_physical_ptr_t pageTable)
+EFI_STATUS check_addr(const char *name, virtual_address_t vaddr, page_table_entry_physical_ptr_t pageTable)
 {
     page_table_entry_t l3 = pageTable[PT_L4_IDX(vaddr)];
     pageTable = (page_table_entry_physical_ptr_t)(l3 & PAGE_ADDR_MASK);
@@ -86,10 +98,20 @@ void check_addr(const char *name, virtual_address_t vaddr, page_table_entry_phys
     page_table_entry_t entry = pageTable[PT_L1_IDX(vaddr)];
     physical_address_t paddr = (physical_address_t)(entry & PAGE_ADDR_MASK);
 
-    TraceLine("Entry for %a (%llp): %llp", name, vaddr, entry);
+    if (paddr == NULL)
+    {
+        TraceLine("Entry for %a (%llp) doesn't exist!", name, vaddr);
+        return EFI_LOAD_ERROR;
+    }
+    else
+    {
+        TraceLine("Entry for %a (%llp): %llp", name, vaddr, entry);
+    }
 
     const unsigned char *bytes = (const unsigned char *)paddr;
     TraceLine("  First bytes: 0x%hhx 0x%hhx 0x%hhx 0x%hhx 0x%hhx 0x%hhx 0x%hhx 0x%hhx", bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]);
+
+    return EFI_SUCCESS;
 }
 
 EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *kernel, size_t kernel_size, kernel_image_t *kernel_info, boot_info_t *bi, virtual_address_ptr_t stack_pointer_out, page_table_physical_ptr_t pageTable)
@@ -103,8 +125,8 @@ EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *
     page_virtual_address_t first_page, next_page;
     map_kernel(kernel, kernel_size, kernel_info, &first_page, &next_page, pageTable);
 
-    check_addr("kernel", (virtual_address_t)first_page, pml4);
-    check_addr("kernel entry", (virtual_address_t)kernel_info->entry, pml4);
+    TRYWRAPFN(check_addr("kernel", (virtual_address_t)first_page, pml4));
+    TRYWRAPFN(check_addr("kernel entry", (virtual_address_t)kernel_info->entry, pml4));
 
     // for (;;)
     //     ;
@@ -134,7 +156,7 @@ EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *
         next_page += STACK_SIZE;
     }
 
-    check_addr("(ss:esp - 8)", *stack_pointer_out - 8, pml4);
+    TRYWRAPFN(check_addr("(ss:esp - 8)", *stack_pointer_out - 8, pml4));
 
     // for (;;)
     //     ;
@@ -146,7 +168,8 @@ EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *
     TraceLine("Mapping in %d frame buffer pages from %llp (phys) to %llp (virt)...", framebuf_pages, bi->graphics_info.framebuffer_base, bi->graphics_info.framebuffer_virtual_base);
     // Suppress output
     enum BootLogLevel prevLevel = logLevel;
-    logLevel = ErrorLevel;
+    if (logLevel > DebugLevel)
+        logLevel = DebugLevel;
     TRYWRAPFN(map_pages((page_virtual_address_t)bi->graphics_info.framebuffer_virtual_base,
                         (page_physical_address_t)bi->graphics_info.framebuffer_base,
                         PAGE_PRESENT | PAGE_RW | PAGE_NX,
@@ -155,7 +178,7 @@ EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *
     logLevel = prevLevel;
     TraceLine("Mapped in %d frame buffer pages from %llp (phys) to %llp (virt).", framebuf_pages, bi->graphics_info.framebuffer_base, bi->graphics_info.framebuffer_virtual_base);
 
-    check_addr("frame buffer", framebuf_page, pml4);
+    TRYWRAPFN(check_addr("frame buffer", framebuf_page, pml4));
 
     // for (;;)
     //     ;
@@ -168,7 +191,7 @@ EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *
     bi->initrd_base = (uint32_t *)next_page; // physical to virtual
     next_page += initrd_pages * EFI_PAGE_SIZE;
 
-    check_addr("initrd", initrd_page, pml4);
+    TRYWRAPFN(check_addr("initrd", initrd_page, pml4));
 
     // for (;;)
     //     ;
@@ -189,35 +212,80 @@ EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *
         {
         case EfiLoaderCode:
             loader_code_page = d->PhysicalStart;
-            TraceLine("Mapping in loader code section %llp with %d pages (identiy mapped: %llp)...", d->PhysicalStart, d->NumberOfPages, d->VirtualStart);
+            TraceLine("Mapping in loader code section %llp with %d pages...", d->PhysicalStart, d->NumberOfPages);
             TRYWRAPFN(map_pages(d->PhysicalStart, d->PhysicalStart, PAGE_PRESENT, d->NumberOfPages, pageTable));
             break;
         case EfiLoaderData:
             if (d->PhysicalStart < loader_page)
                 loader_page = d->PhysicalStart;
-            TraceLine("Mapping in loader data section %llp with %d pages (identity mapped: %llp)...", d->PhysicalStart, d->NumberOfPages, d->VirtualStart);
+            TraceLine("Mapping in loader data section %llp with %d pages...", d->PhysicalStart, d->NumberOfPages);
             TRYWRAPFN(map_pages(d->PhysicalStart, d->PhysicalStart, PAGE_PRESENT | PAGE_RW | PAGE_NX, d->NumberOfPages, pageTable));
             break;
+#if 0
+        case EfiReservedMemoryType:
+            TraceLine("EfiReservedMemoryType        %08llp-%llp", d->PhysicalStart, d->PhysicalStart + d->NumberOfPages * EFI_PAGE_SIZE - 1);
+            break;
+        case EfiBootServicesCode:
+            TraceLine("EfiBootServicesCode          %llp-%llp", d->PhysicalStart, d->PhysicalStart + d->NumberOfPages * EFI_PAGE_SIZE - 1);
+            break;
+        case EfiBootServicesData:
+            TraceLine("EfiBootServicesData          %llp-%llp", d->PhysicalStart, d->PhysicalStart + d->NumberOfPages * EFI_PAGE_SIZE - 1);
+            break;
+        case EfiRuntimeServicesCode:
+            TraceLine("EfiRuntimeServicesCode       %llp-%llp", d->PhysicalStart, d->PhysicalStart + d->NumberOfPages * EFI_PAGE_SIZE - 1);
+            break;
+        case EfiRuntimeServicesData:
+            TraceLine("EfiRuntimeServicesData       %llp-%llp", d->PhysicalStart, d->PhysicalStart + d->NumberOfPages * EFI_PAGE_SIZE - 1);
+            break;
+        case EfiConventionalMemory:
+            TraceLine("EfiConventionalMemory        %llp-%llp", d->PhysicalStart, d->PhysicalStart + d->NumberOfPages * EFI_PAGE_SIZE - 1);
+            break;
+        case EfiUnusableMemory:
+            TraceLine("EfiUnusableMemory            %llp-%llp", d->PhysicalStart, d->PhysicalStart + d->NumberOfPages * EFI_PAGE_SIZE - 1);
+            break;
+        case EfiACPIReclaimMemory:
+            TraceLine("EfiACPIReclaimMemory         %llp-%llp", d->PhysicalStart, d->PhysicalStart + d->NumberOfPages * EFI_PAGE_SIZE - 1);
+            break;
+        case EfiACPIMemoryNVS:
+            TraceLine("EfiACPIMemoryNVS             %llp-%llp", d->PhysicalStart, d->PhysicalStart + d->NumberOfPages * EFI_PAGE_SIZE - 1);
+            break;
+        case EfiMemoryMappedIO:
+            TraceLine("EfiMemoryMappedIO            %llp-%llp", d->PhysicalStart, d->PhysicalStart + d->NumberOfPages * EFI_PAGE_SIZE - 1);
+            break;
+        case EfiMemoryMappedIOPortSpace:
+            TraceLine("EfiMemoryMappedIOPortSpace   %llp-%llp", d->PhysicalStart, d->PhysicalStart + d->NumberOfPages * EFI_PAGE_SIZE - 1);
+            break;
+        case EfiPalCode:
+            TraceLine("EfiPalCode                   %llp-%llp", d->PhysicalStart, d->PhysicalStart + d->NumberOfPages * EFI_PAGE_SIZE - 1);
+            break;
+        case EfiPersistentMemory:
+            TraceLine("EfiPersistentMemory          %llp-%llp", d->PhysicalStart, d->PhysicalStart + d->NumberOfPages * EFI_PAGE_SIZE - 1);
+            break;
+        case EfiUnacceptedMemoryType:
+            TraceLine("EfiUnacceptedMemoryType      %llp-%llp", d->PhysicalStart, d->PhysicalStart + d->NumberOfPages * EFI_PAGE_SIZE - 1);
+            break;
+        case EfiMaxMemoryType:
+            TraceLine("EfiMaxMemoryType             %llp-%llp", d->PhysicalStart, d->PhysicalStart + d->NumberOfPages * EFI_PAGE_SIZE - 1);
+            break;
+#endif
         }
     }
     TraceLine("Freeing temporary memory map...");
     TRYWRAPS((BS->FreePool, 1, initmm.memory_map), "Failed to free temporary memory map");
-
-    check_addr("loader data", loader_page, pml4);
-    check_addr("loader code", loader_code_page, pml4);
 
     // for (;;)
     //     ;
 
     TraceLine("End of mapping: %llp", next_page);
 
-    check_addr("kernel", first_page, pml4);
-    check_addr("kernel entry", (virtual_address_t)kernel_info->entry, pml4);
-    check_addr("(ss:esp - 8)", *stack_pointer_out - 8, pml4);
-    check_addr("frame buffer", framebuf_page, pml4);
-    check_addr("initrd", initrd_page, pml4);
-    check_addr("loader data", loader_page, pml4);
-    check_addr("loader code", loader_code_page, pml4);
+    TRYWRAPFN(check_addr("kernel", first_page, pml4));
+    TRYWRAPFN(check_addr("kernel entry", (virtual_address_t)kernel_info->entry, pml4));
+    TRYWRAPFN(check_addr("(ss:esp - 8)", *stack_pointer_out - 8, pml4));
+    TRYWRAPFN(check_addr("frame buffer", framebuf_page, pml4));
+    TRYWRAPFN(check_addr("initrd", initrd_page, pml4));
+    TRYWRAPFN(check_addr("loader data", loader_page, pml4));
+    TRYWRAPFN(check_addr("loader code", loader_code_page, pml4));
+    TRYWRAPFN(check_addr("boot_info", (virtual_address_t)bi, pml4));
 
     // for (;;)
     //     ;
@@ -344,7 +412,7 @@ EFI_STATUS map_page(page_virtual_address_t virt_addr, page_physical_address_t ph
                      1, (EFI_PHYSICAL_ADDRESS *)&page_addr));
             page_physical_ptr_t page = (page_physical_ptr_t)page_addr;
             // Clear the new page
-            memset((void *)page_addr, 0, 4096);
+            memset((void *)page_addr, 0, EFI_PAGE_SIZE);
 
             page_entry = page_addr & PAGE_ADDR_MASK | PAGE_PRESENT | PAGE_RW /*| PAGE_NX*/;
 
@@ -370,8 +438,16 @@ EFI_STATUS map_page(page_virtual_address_t virt_addr, page_physical_address_t ph
 EFI_STATUS map_pages(page_virtual_address_t virt_addr, page_physical_address_t phys_addr, PageAttributes attr, int pages, page_table_physical_ptr_t pageTable)
 {
     EFI_STATUS status;
+    enum BootLogLevel prevLevel = logLevel;
     for (int i = 0; i < pages; i++)
     {
+        if (i == 1 && logLevel > WarningLevel && pages > 2)
+        {
+            TraceLine("...");
+            logLevel = DebugLevel;
+        }
+        if (i == pages - 1)
+            logLevel = prevLevel;
         TraceLine("Page %d of %d...", i + 1, pages);
         TRYWRAPFN(map_page(virt_addr, phys_addr, attr, pageTable));
         virt_addr += EFI_PAGE_SIZE;
@@ -413,7 +489,7 @@ EFI_STATUS create_page_tables(page_table_physical_address_ptr_t page_table_out)
 
     // Map it in(to itself)
     TraceLine("Mapping the page table into itself...");
-    TRYWRAPFN(map_page(PT_L4_BASE, (page_physical_address_t)pageTable, PAGE_PRESENT | PAGE_RW | PAGE_NX, pageTable));
+    TRYWRAPFN(map_page(PT_L4_BASE, (page_physical_address_t)pageTable, PAGE_PRESENT | PAGE_RW /*| PAGE_NX*/, pageTable));
     TraceLine("Page tables created.");
 
     return EFI_SUCCESS;

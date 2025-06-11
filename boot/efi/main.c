@@ -9,6 +9,7 @@ enum BootLogLevel logLevel = TraceLevel;
 
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 {
+    // disable_lapic();
     EFI_STATUS status;
     graphics_info_t gi;
 

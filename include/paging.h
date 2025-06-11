@@ -3,17 +3,20 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define PAGE_SIZE 4096
+#define PAGE_TABLE_ENTRY_COUNT 512
+
 typedef uint64_t page_table_entry_t;
 typedef page_table_entry_t
     *page_table_entry_ptr_t,
     *page_table_entry_physical_ptr_t,
     *page_table_entry_virtual_ptr_t;
-__attribute__((aligned(4096))) typedef unsigned char page_t[4096];
+__attribute__((aligned(PAGE_SIZE))) typedef unsigned char page_t[PAGE_SIZE];
 typedef page_t
     *page_ptr_t,
     *page_physical_ptr_t,
     *page_virtual_ptr_t;
-__attribute__((aligned(4096))) typedef page_table_entry_t page_table_t[512];
+__attribute__((aligned(PAGE_SIZE))) typedef page_table_entry_t page_table_t[PAGE_TABLE_ENTRY_COUNT];
 typedef page_table_t
     *page_table_ptr_t,
     *page_table_physical_ptr_t,
@@ -133,5 +136,5 @@ static inline void PT_COMPUTE_ENTRIES(virtual_address_t addr,
     *pdptEntry = PT_ENTRY(*pdEntry);
     *pml4Entry = PT_ENTRY(*pdptEntry);
 
-    // Compute the base address of the page tables easily by truncating to 4096 bits e.g. & ~0xFFF or PT_PAGE_BASE(entry)
+    // Compute the base address of the page tables easily by truncating to multiple of 4096 bytes e.g. & ~0xFFF or PT_PAGE_BASE(entry)
 }

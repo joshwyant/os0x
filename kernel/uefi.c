@@ -36,7 +36,7 @@ void parse_memory_map(boot_memmap_t *map_info)
         {
             // Available RAM block
             uint64_t base = d->PhysicalStart;
-            uint64_t size = d->NumberOfPages * 4096;
+            uint64_t size = d->NumberOfPages * EFI_PAGE_SIZE;
             // Use base/size for your allocator or memory map
         }
     }
