@@ -33,7 +33,8 @@ obj/%.o: %.c | obj
 
 bin/kernel.elf: $(KERNEL_OBJS) | bin
 	$(KERNEL_LD) -nostdlib -z max-page-size=0x1000 -z noexecstack \
-		-T link.ld -o $@ obj/**/*.o
+		-T link.ld -o $@ obj/*.o
+#obj/**/*.o
 
 clean:
 	$(RM) -r obj
