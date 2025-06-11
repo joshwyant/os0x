@@ -7,12 +7,13 @@ void parse_memory_map(boot_memmap_t *map_info);
 
 void kernel_boot(boot_info_t *bootInfo)
 {
-    for (;;)
-        ;
     // Sanity check: basic boot info validation
     if (bootInfo == NULL || bootInfo->magic != BOOTINFO_MAGIC)
         freeze();
+
     clear_screen(bootInfo, 0x0000FF);
+    for (;;)
+        ;
 
     // Do something with the memory map:
     parse_memory_map(&bootInfo->memory_map);
@@ -45,7 +46,7 @@ static void clear_screen(boot_info_t *bi, uint32_t color)
 {
     for (int y = 0; y < bi->graphics_info.framebuffer_height; y++)
     {
-        uint32_t *p = (bi->graphics_info.framebuffer_base + y * bi->graphics_info.pixels_per_scanline);
+        uint32_t *p = (bi->graphics_info.framebuffer_virtual_base + y * bi->graphics_info.pixels_per_scanline);
         for (int x = 0; x < bi->graphics_info.framebuffer_width; x++)
         {
             p[x] = color;
