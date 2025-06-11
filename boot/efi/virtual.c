@@ -346,7 +346,7 @@ EFI_STATUS map_page(page_virtual_address_t virt_addr, page_physical_address_t ph
             // Clear the new page
             memset((void *)page_addr, 0, 4096);
 
-            page_entry = page_addr & PAGE_ADDR_MASK | PAGE_PRESENT | PAGE_RW | PAGE_NX;
+            page_entry = page_addr & PAGE_ADDR_MASK | PAGE_PRESENT | PAGE_RW /*| PAGE_NX*/;
 
             TraceLine("    Allocated physical page %llp, entry %llp", page_addr, page_entry);
             entries[idx] = page_entry;
