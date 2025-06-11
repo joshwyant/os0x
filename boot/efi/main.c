@@ -1,11 +1,12 @@
 
 #include "main.h"
 
-// #ifdef QUIET
-// enum BootLogLevel logLevel = ErrorLevel;
-// #else
+#define QUIET
+#ifdef QUIET
+enum BootLogLevel logLevel = ErrorLevel;
+#else
 enum BootLogLevel logLevel = TraceLevel;
-// #endif
+#endif
 
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 {

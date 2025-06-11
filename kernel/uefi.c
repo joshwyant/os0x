@@ -11,7 +11,7 @@ void kernel_boot(boot_info_t *bootInfo)
     if (bootInfo == NULL || bootInfo->magic != BOOTINFO_MAGIC)
         freeze();
 
-    clear_screen(bootInfo, 0x0000FF);
+    clear_screen(bootInfo, 0x00181825); // catppuccin mocha mantle
     for (;;)
         ;
 
