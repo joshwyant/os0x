@@ -19,10 +19,12 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
                "Failed to get graphics info");
     clear_screen(&gi, 0x00181825); // catppuccin mocha mantle
 
-    boot_info_t bi = {
-        .magic = BOOTINFO_MAGIC,
-        .graphics_info = gi,
-    };
+    boot_info_t *bi;
+    TRYWRAP((SystemTable->BootServices->AllocatePool, 3, EfiLoaderData, sizeof(boot_info_t), (void **)&bi));
+    memset((void *)bi, 0, sizeof(boot_info_t));
+
+    bi->magic = BOOTINFO_MAGIC;
+    bi->graphics_info = gi;
 
     InfoLine("os0x, an experimental operating system");
     InfoLine("Copyright (c) 2025 Josh Wyant");
@@ -32,19 +34,19 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 
     LogLine0(Info);
     InfoLine("Loading initrd.img...");
-    TRYWRAPFNS(load_boot_image(ImageHandle, SystemTable, &bi),
+    TRYWRAPFNS(load_boot_image(ImageHandle, SystemTable, bi),
                "Failed to load boot image");
 
     size_t kernel_size;
     const void *kernel;
     TraceLine("Looking for kernel in initrd.img...");
     TRYEXPR(
-        kernel = find_cpio_file((cpio_file_base_ptr_t)(void *)bi.initrd_base, bi.initrd_size, "kernel.elf", &kernel_size),
+        kernel = find_cpio_file((cpio_file_base_ptr_t)(void *)bi->initrd_base, bi->initrd_size, "kernel.elf", &kernel_size),
         EFI_LOAD_ERROR, "Could not locate kernel.elf in initrd.img!");
     TraceLine("Kernel found.");
 
     TraceLine("Loading the kernel...");
-    TRYWRAPFNS(load_kernel(ImageHandle, SystemTable, kernel, kernel_size, &bi),
+    TRYWRAPFNS(load_kernel(ImageHandle, SystemTable, kernel, kernel_size, bi),
                "Failed to load the kernel");
 
     InfoLine("Kernel returned.");
