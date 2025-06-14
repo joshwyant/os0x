@@ -5,7 +5,7 @@
 static void clear_screen(boot_info_t *bi, uint32_t color);
 void parse_memory_map(boot_memmap_t *map_info);
 
-void kernel_boot(boot_info_t *bootInfo)
+extern "C" void kernel_boot(boot_info_t *bootInfo)
 {
     // Sanity check: basic boot info validation
     if (bootInfo == NULL || bootInfo->magic != boot_info_t::BOOTINFO_MAGIC)

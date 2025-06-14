@@ -221,7 +221,7 @@ EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *
             TraceLine("Mapping in loader data section %llp with %d pages...", d->PhysicalStart, d->NumberOfPages);
             TRYWRAPFN(map_pages(d->PhysicalStart, d->PhysicalStart, PageAttributes::PAGE_PRESENT | PageAttributes::PAGE_RW | PageAttributes::PAGE_NX, d->NumberOfPages, pageTable));
             break;
-#if 0
+#if 1
         case EfiReservedMemoryType:
             TraceLine("EfiReservedMemoryType        %08llp-%llp", d->PhysicalStart, d->PhysicalStart + d->NumberOfPages * EFI_PAGE_SIZE - 1);
             break;
