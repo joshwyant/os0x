@@ -12,7 +12,8 @@
                 "${workspaceFolder}/third_party/include"
             ],
             "defines": [
-                "__x86_64__"
+                "__x86_64__",
+                "QUIET"
             ],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c17",

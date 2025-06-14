@@ -92,6 +92,8 @@ extern "C"
 {
 #endif
 
+    EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable);
+
     EFI_STATUS create_page_tables(page_table_physical_address_ptr_t page_table_out);
     EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *kernel, size_t kernel_size, kernel_image_t *kernel_info, boot_info_t *bi, virtual_address_ptr_t stack_pointer_out, page_table_physical_ptr_t pageTable);
     EFI_STATUS load_boot_image(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, boot_info_t *bi);
