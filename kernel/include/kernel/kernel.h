@@ -13,7 +13,7 @@ extern "C"
 
     void kernel_main();
 
-#ifdef _cplusplus
+#ifdef __cplusplus
 } // extern "C"
 #endif
 

@@ -8,7 +8,7 @@ void parse_memory_map(boot_memmap_t *map_info);
 void kernel_boot(boot_info_t *bootInfo)
 {
     // Sanity check: basic boot info validation
-    if (bootInfo == NULL || bootInfo->magic != BOOTINFO_MAGIC)
+    if (bootInfo == NULL || bootInfo->magic != boot_info_t::BOOTINFO_MAGIC)
         freeze();
 
     clear_screen(bootInfo, 0x00181825); // catppuccin mocha mantle

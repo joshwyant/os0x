@@ -28,7 +28,7 @@ bin:
 obj/%.o: arch/$(ARCH)/%.S | obj
 	$(KERNEL_AS) $(KERNEL_ASFLAGS) -o $@ $<
 
-obj/%.o: %.c | obj
+obj/%.o: %.cpp | obj
 	$(KERNEL_CC_INVOKE) $< -o $@
 
 bin/kernel.elf: $(KERNEL_OBJS) | bin

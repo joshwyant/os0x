@@ -33,9 +33,6 @@ bin:
 obj/%.o: arch/$(ARCH)/%.S | obj
 	$(EFI_AS) $(EFI_ASFLAGS) -o $@ $<
 
-obj/%.o: %.c | obj
-	$(EFI_CC_INVOKE) $< -o $@
-
 obj/%.o: %.cpp | obj
 	$(EFI_CC_INVOKE) $< -o $@
 
