@@ -87,20 +87,29 @@ extern enum BootLogLevel {
     TraceLevel
 } logLevel;
 
-EFI_STATUS create_page_tables(page_table_physical_address_ptr_t page_table_out);
-EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *kernel, size_t kernel_size, kernel_image_t *kernel_info, boot_info_t *bi, virtual_address_ptr_t stack_pointer_out, page_table_physical_ptr_t pageTable);
-EFI_STATUS load_boot_image(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, boot_info_t *bi);
-EFI_STATUS measure_kernel(const void *elf_data, size_t elf_size, kernel_image_t *out);
-EFI_STATUS map_kernel(const void *elf_data, size_t elf_size, kernel_image_t *out, page_virtual_address_ptr_t first_page, page_virtual_address_ptr_t next_page, page_table_physical_ptr_t pageTable);
-EFI_STATUS load_kernel(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, const void *kernel, size_t kernel_size, boot_info_t *bi);
-EFI_STATUS enter_kernel(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, kernel_image_t *kernel_info, virtual_address_t stack_pointer, page_table_address_t page_table, boot_info_t *bi, UINTN mapKey);
-EFI_STATUS get_memmap(EFI_SYSTEM_TABLE *SystemTable, boot_memmap_t *mm, UINTN *mapKey);
-EFI_STATUS map_page(page_virtual_address_t virt_addr, page_physical_address_t phys_addr, PageAttributes attrs, page_table_physical_ptr_t pageTable);
-EFI_STATUS map_pages(page_virtual_address_t virt_addr, page_physical_address_t phys_addr, PageAttributes attr, int pages, page_table_physical_ptr_t pageTable);
-EFI_STATUS map_new_pages(page_virtual_address_t virt_addr, page_physical_address_ptr_t phys_addr_out, PageAttributes attr, int pagesi, page_table_physical_ptr_t pageTable);
-EFI_STATUS get_graphics_info(EFI_SYSTEM_TABLE *SystemTable, graphics_info_t *bi);
-EFI_STATUS wait_for_key(EFI_SYSTEM_TABLE *SystemTable);
-EFI_STATUS get_mp_info(EFI_SYSTEM_TABLE *SystemTable, boot_info_t *bi, UINTN *cpuCount);
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+    EFI_STATUS create_page_tables(page_table_physical_address_ptr_t page_table_out);
+    EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *kernel, size_t kernel_size, kernel_image_t *kernel_info, boot_info_t *bi, virtual_address_ptr_t stack_pointer_out, page_table_physical_ptr_t pageTable);
+    EFI_STATUS load_boot_image(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, boot_info_t *bi);
+    EFI_STATUS measure_kernel(const void *elf_data, size_t elf_size, kernel_image_t *out);
+    EFI_STATUS map_kernel(const void *elf_data, size_t elf_size, kernel_image_t *out, page_virtual_address_ptr_t first_page, page_virtual_address_ptr_t next_page, page_table_physical_ptr_t pageTable);
+    EFI_STATUS load_kernel(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, const void *kernel, size_t kernel_size, boot_info_t *bi);
+    EFI_STATUS enter_kernel(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, kernel_image_t *kernel_info, virtual_address_t stack_pointer, page_table_address_t page_table, boot_info_t *bi, UINTN mapKey);
+    EFI_STATUS get_memmap(EFI_SYSTEM_TABLE *SystemTable, boot_memmap_t *mm, UINTN *mapKey);
+    EFI_STATUS map_page(page_virtual_address_t virt_addr, page_physical_address_t phys_addr, PageAttributes attrs, page_table_physical_ptr_t pageTable);
+    EFI_STATUS map_pages(page_virtual_address_t virt_addr, page_physical_address_t phys_addr, PageAttributes attr, int pages, page_table_physical_ptr_t pageTable);
+    EFI_STATUS map_new_pages(page_virtual_address_t virt_addr, page_physical_address_ptr_t phys_addr_out, PageAttributes attr, int pagesi, page_table_physical_ptr_t pageTable);
+    EFI_STATUS get_graphics_info(EFI_SYSTEM_TABLE *SystemTable, graphics_info_t *bi);
+    EFI_STATUS wait_for_key(EFI_SYSTEM_TABLE *SystemTable);
+    EFI_STATUS get_mp_info(EFI_SYSTEM_TABLE *SystemTable, boot_info_t *bi, UINTN *cpuCount);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 static void clear_screen(graphics_info_t *gi, uint32_t color)
 {

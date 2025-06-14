@@ -36,6 +36,9 @@ obj/%.o: arch/$(ARCH)/%.S | obj
 obj/%.o: %.c | obj
 	$(EFI_CC_INVOKE) $< -o $@
 
+obj/%.o: %.cpp | obj
+	$(EFI_CC_INVOKE) $< -o $@
+
 obj/main.so: $(EFI_OBJS) | obj
 	x86_64-linux-gnu-ld \
 		-nostdlib -znocombreloc -shared -Bsymbolic \

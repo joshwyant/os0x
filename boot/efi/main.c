@@ -1,7 +1,6 @@
 
 #include "main.h"
 
-#define QUIET
 #ifdef QUIET
 enum BootLogLevel logLevel = ErrorLevel;
 #else

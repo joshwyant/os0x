@@ -67,8 +67,8 @@ static void *_memcpy(void *dest, const void *src, size_t n)
 
 static void _memset(void *dest, unsigned char val, size_t n)
 {
-    while (n--)
-        *((unsigned char *)dest++) = val;
+    for (size_t i = 0; i < n; i++)
+        ((unsigned char *)dest)[i] = val;
 }
 
 static int _memcmp(const void *a, const void *b, size_t n)

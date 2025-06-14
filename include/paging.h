@@ -53,7 +53,11 @@ typedef page_table_entry_address_t
 #define PAGE_ADDR_MASK 0x000FFFFFFFFFF000ULL
 #define PAGE_MASK 0xFFFULL
 
+#ifdef __cplusplus
+enum class PageAttributes : unsigned long
+#else
 typedef enum
+#endif
 {
     PAGE_PRESENT = (1ULL << 0),
     PAGE_RW = (1ULL << 1),
@@ -65,7 +69,26 @@ typedef enum
     PAGE_PAT = (1ULL << 7),
     PAGE_GLOBAL = (1ULL << 8),
     PAGE_NX = (1ULL << 63), // Only if EFER.NXE is enabled
+#ifdef __cplusplus
+};
+
+inline PageAttributes operator|(PageAttributes a, PageAttributes b)
+{
+    return static_cast<PageAttributes>(static_cast<unsigned long long>(a) | static_cast<unsigned long long>(b));
+}
+
+inline PageAttributes operator&(PageAttributes a, PageAttributes b)
+{
+    return static_cast<PageAttributes>(static_cast<unsigned long long>(a) & static_cast<unsigned long long>(b));
+}
+
+inline PageAttributes &operator|=(PageAttributes &a, PageAttributes b)
+{
+    return a = a | b;
+}
+#else
 } PageAttributes;
+#endif
 
 // [ 9 bits | 9 bits | 9 bits | 9 bits | 12 bits ]
 //   PML4     PDPT     PD       PT       offset

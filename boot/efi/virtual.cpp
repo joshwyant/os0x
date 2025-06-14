@@ -73,7 +73,7 @@ EFI_STATUS enter_kernel(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, k
 
     // DebugLine("Exiting boot services...");
     // No printing or allocation after getting the memory map
-    TRYWRAPS((SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mapKey),
+    TRYWRAPS(((void *)SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mapKey),
              "Could not exit boot services");
 
     // DebugLine("Kernel loaded. Executing...");
@@ -98,7 +98,7 @@ EFI_STATUS check_addr(const char *name, virtual_address_t vaddr, page_table_entr
     page_table_entry_t entry = pageTable[PT_L1_IDX(vaddr)];
     physical_address_t paddr = (physical_address_t)(entry & PAGE_ADDR_MASK);
 
-    if (paddr == NULL)
+    if (paddr == 0)
     {
         TraceLine("Entry for %a (%llp) doesn't exist!", name, vaddr);
         return EFI_LOAD_ERROR;
@@ -148,7 +148,7 @@ EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *
         next_page += EFI_PAGE_SIZE; // guard page
         TraceLine("Allocating %d pages for stack at %llp", stack_pages, next_page);
         page_physical_address_t stack_addr;
-        TRYWRAPFN(map_new_pages(next_page, &stack_addr, PAGE_PRESENT | PAGE_RW | PAGE_NX, stack_pages, pageTable));
+        TRYWRAPFN(map_new_pages(next_page, &stack_addr, PageAttributes::PAGE_PRESENT | PageAttributes::PAGE_RW | PageAttributes::PAGE_NX, stack_pages, pageTable));
         TraceLine("Physical address of stack: %llp", stack_addr);
 
         // Zero it out
@@ -172,7 +172,7 @@ EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *
         logLevel = DebugLevel;
     TRYWRAPFN(map_pages((page_virtual_address_t)bi->graphics_info.framebuffer_virtual_base,
                         (page_physical_address_t)bi->graphics_info.framebuffer_base,
-                        PAGE_PRESENT | PAGE_RW | PAGE_NX,
+                        PageAttributes::PAGE_PRESENT | PageAttributes::PAGE_RW | PageAttributes::PAGE_NX,
                         framebuf_pages, pageTable));
     next_page += framebuf_pages * EFI_PAGE_SIZE;
     logLevel = prevLevel;
@@ -187,7 +187,7 @@ EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *
     page_virtual_address_t initrd_page = next_page;
     int initrd_pages = EFI_SIZE_TO_PAGES(bi->initrd_size);
     TraceLine("Mapping in initrd.img, %d pages at %llp", initrd_pages, next_page);
-    TRYWRAPFN(map_pages(next_page, (page_physical_address_t)bi->initrd_base, PAGE_PRESENT | PAGE_RW | PAGE_NX, initrd_pages, pageTable));
+    TRYWRAPFN(map_pages(next_page, (page_physical_address_t)bi->initrd_base, PageAttributes::PAGE_PRESENT | PageAttributes::PAGE_RW | PageAttributes::PAGE_NX, initrd_pages, pageTable));
     bi->initrd_base = (uint32_t *)next_page; // physical to virtual
     next_page += initrd_pages * EFI_PAGE_SIZE;
 
@@ -213,13 +213,13 @@ EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *
         case EfiLoaderCode:
             loader_code_page = d->PhysicalStart;
             TraceLine("Mapping in loader code section %llp with %d pages...", d->PhysicalStart, d->NumberOfPages);
-            TRYWRAPFN(map_pages(d->PhysicalStart, d->PhysicalStart, PAGE_PRESENT, d->NumberOfPages, pageTable));
+            TRYWRAPFN(map_pages(d->PhysicalStart, d->PhysicalStart, PageAttributes::PAGE_PRESENT, d->NumberOfPages, pageTable));
             break;
         case EfiLoaderData:
             if (d->PhysicalStart < loader_page)
                 loader_page = d->PhysicalStart;
             TraceLine("Mapping in loader data section %llp with %d pages...", d->PhysicalStart, d->NumberOfPages);
-            TRYWRAPFN(map_pages(d->PhysicalStart, d->PhysicalStart, PAGE_PRESENT | PAGE_RW | PAGE_NX, d->NumberOfPages, pageTable));
+            TRYWRAPFN(map_pages(d->PhysicalStart, d->PhysicalStart, PageAttributes::PAGE_PRESENT | PageAttributes::PAGE_RW | PageAttributes::PAGE_NX, d->NumberOfPages, pageTable));
             break;
 #if 0
         case EfiReservedMemoryType:
@@ -271,7 +271,7 @@ EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *
         }
     }
     TraceLine("Freeing temporary memory map...");
-    TRYWRAPS((BS->FreePool, 1, initmm.memory_map), "Failed to free temporary memory map");
+    TRYWRAPS(((void *)BS->FreePool, 1, initmm.memory_map), "Failed to free temporary memory map");
 
     // for (;;)
     //     ;
@@ -305,7 +305,7 @@ EFI_STATUS map_kernel(const void *elf_data, size_t elf_size, kernel_image_t *out
     Elf64_Phdr *phdrs = (Elf64_Phdr *)((uint8_t *)elf_data + ehdr->e_phoff);
     out->kernel_page_count = 0;
     out->kernel_virtual_base = (virtual_address_t)phdrs[0].p_vaddr;
-    out->entry = (void *)(uintptr_t)ehdr->e_entry;
+    out->entry = (kernel_entry_t)ehdr->e_entry;
     out->kernel_code_pages = EFI_SIZE_TO_PAGES(phdrs[0].p_memsz);
     *first_page = out->kernel_virtual_base;
     *next_page = *first_page;
@@ -326,15 +326,15 @@ EFI_STATUS map_kernel(const void *elf_data, size_t elf_size, kernel_image_t *out
         UINTN pages = EFI_SIZE_TO_PAGES(ph->p_memsz);
 
         page_physical_address_t physaddr;
-        PageAttributes attr = PAGE_PRESENT;
+        PageAttributes attr = PageAttributes::PAGE_PRESENT;
         if (!(ph->p_flags & PF_X))
         {
             TraceLine("    No execute");
-            attr |= PAGE_NX;
+            attr |= PageAttributes::PAGE_NX;
         }
         if ((ph->p_flags) & PF_W)
         {
-            attr |= PAGE_RW;
+            attr |= PageAttributes::PAGE_RW;
             TraceLine("    Writeable");
         }
         TRYWRAPFN(map_new_pages(*next_page, &physaddr, attr, pages, pageTable));
@@ -365,16 +365,16 @@ EFI_STATUS get_memmap(EFI_SYSTEM_TABLE *SystemTable, boot_memmap_t *mm, UINTN *m
     EFI_MEMORY_DESCRIPTOR *memMap = NULL;
 
     // Passing in 0 and NULL gives us the minimum map size and an error
-    uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5,
+    uefi_call_wrapper((void *)SystemTable->BootServices->GetMemoryMap, 5,
                       &mapSize, memMap, mapKey, &descSize, &descVersion);
     TraceLine("Memory map size: 0x%x, descriptor size: 0x%x, version: %d", mapSize, descSize, descVersion);
 
     // Allocate space
     mapSize += descSize * 8; // Safety margin
-    TRYWRAP((SystemTable->BootServices->AllocatePool, 3, EfiLoaderData, mapSize, (void **)&memMap));
+    TRYWRAP(((void *)SystemTable->BootServices->AllocatePool, 3, EfiLoaderData, mapSize, (void **)&memMap));
 
     // Now get the actual map
-    TRYWRAPS((SystemTable->BootServices->GetMemoryMap, 5,
+    TRYWRAPS(((void *)SystemTable->BootServices->GetMemoryMap, 5,
               &mapSize, memMap, mapKey, &descSize, &descVersion),
              "Could not get memory map");
 
@@ -404,17 +404,17 @@ EFI_STATUS map_page(page_virtual_address_t virt_addr, page_physical_address_t ph
         TraceLine("  Page table level %ld @ %llp, index 0x%x", level, entries, idx);
         page_entry = entries[idx];
         // TraceLine("    Current entry: %llp", page_entry);
-        if ((page_entry & PAGE_PRESENT) == 0)
+        if ((page_entry & static_cast<uint64_t>(PageAttributes::PAGE_PRESENT)) == 0)
         {
             page_physical_address_t page_addr;
             // Create new page table page
-            TRYWRAP((BS->AllocatePages, 4, AllocateAnyPages, EfiLoaderData,
+            TRYWRAP(((void *)BS->AllocatePages, 4, AllocateAnyPages, EfiLoaderData,
                      1, (EFI_PHYSICAL_ADDRESS *)&page_addr));
             page_physical_ptr_t page = (page_physical_ptr_t)page_addr;
             // Clear the new page
             memset((void *)page_addr, 0, EFI_PAGE_SIZE);
 
-            page_entry = page_addr & PAGE_ADDR_MASK | PAGE_PRESENT | PAGE_RW /*| PAGE_NX*/;
+            page_entry = page_addr & PAGE_ADDR_MASK | static_cast<uint64_t>(PageAttributes::PAGE_PRESENT | PageAttributes::PAGE_RW) /*| PageAttributes::PAGE_NX*/;
 
             TraceLine("    Allocated physical page %llp, entry %llp", page_addr, page_entry);
             entries[idx] = page_entry;
@@ -426,9 +426,9 @@ EFI_STATUS map_page(page_virtual_address_t virt_addr, page_physical_address_t ph
     // Set the new entry in the lowest page table
     idx = PT_L1_IDX(virt_addr);
     TraceLine("  Page table level 1, index 0x%x", idx);
-    page_entry = phys_addr & PAGE_ADDR_MASK | attrs;
+    page_entry = phys_addr & PAGE_ADDR_MASK | static_cast<unsigned long long>(attrs);
     entries[idx] = page_entry;
-    TraceLine("    New entry: %llp%a%a%a", page_entry, attrs & PAGE_PRESENT ? " P" : "", attrs & PAGE_RW ? " W" : "", attrs & PAGE_NX ? " NX" : "");
+    TraceLine("    New entry: %llp%a%a%a", page_entry, ((attrs & PageAttributes::PAGE_PRESENT) == PageAttributes::PAGE_PRESENT) ? " P" : "", ((attrs & PageAttributes::PAGE_RW) == PageAttributes::PAGE_RW) ? " W" : "", ((attrs & PageAttributes::PAGE_NX) == PageAttributes::PAGE_NX) ? " NX" : "");
     const unsigned char *bytes = (const unsigned char *)phys_addr;
     TraceLine("    First bytes: 0x%hhx 0x%hhx 0x%hhx 0x%hhx 0x%hhx 0x%hhx 0x%hhx 0x%hhx", bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]);
 
@@ -461,7 +461,7 @@ EFI_STATUS map_new_pages(page_virtual_address_t virt_addr, page_physical_address
 {
     TraceLine("Creating %d new pages...", pages);
     EFI_STATUS status;
-    TRYWRAP((BS->AllocatePages, 4, AllocateAnyPages, EfiLoaderData,
+    TRYWRAP(((void *)BS->AllocatePages, 4, AllocateAnyPages, EfiLoaderData,
              pages, (EFI_PHYSICAL_ADDRESS *)phys_addr_out));
     TraceLine("Created %d new pages at %llp. Mapping them in...", pages, *phys_addr_out);
 
@@ -475,7 +475,7 @@ EFI_STATUS create_page_tables(page_table_physical_address_ptr_t page_table_out)
     EFI_STATUS status;
 
     TraceLine("Allocating top level page table...");
-    TRYWRAP((BS->AllocatePages, 4, AllocateAnyPages, EfiLoaderData,
+    TRYWRAP(((void *)BS->AllocatePages, 4, AllocateAnyPages, EfiLoaderData,
              1, (EFI_PHYSICAL_ADDRESS *)page_table_out));
 
     TraceLine("New page table physical address: %llp", *page_table_out);
@@ -489,7 +489,7 @@ EFI_STATUS create_page_tables(page_table_physical_address_ptr_t page_table_out)
 
     // Map it in(to itself)
     TraceLine("Mapping the page table into itself...");
-    TRYWRAPFN(map_page(PT_L4_BASE, (page_physical_address_t)pageTable, PAGE_PRESENT | PAGE_RW /*| PAGE_NX*/, pageTable));
+    TRYWRAPFN(map_page(PT_L4_BASE, (page_physical_address_t)pageTable, PageAttributes::PAGE_PRESENT | PageAttributes::PAGE_RW /*| PageAttributes::PAGE_NX*/, pageTable));
     TraceLine("Page tables created.");
 
     return EFI_SUCCESS;
@@ -501,10 +501,10 @@ EFI_STATUS get_mp_info(EFI_SYSTEM_TABLE *SystemTable, boot_info_t *bi, UINTN *cp
     EFI_MP_SERVICES_PROTOCOL *MpServices;
     UINTN enabledCount;
 
-    TRYWRAPS((BS->LocateProtocol, 3, &gEfiMpServiceProtocolGuid, NULL, (void **)&MpServices),
+    TRYWRAPS(((void *)BS->LocateProtocol, 3, &gEfiMpServiceProtocolGuid, NULL, (void **)&MpServices),
              "Failed to locate processor protocol");
 
-    TRYWRAP((MpServices->GetNumberOfProcessors, 3, MpServices, cpuCount, &enabledCount));
+    TRYWRAP(((void *)MpServices->GetNumberOfProcessors, 3, MpServices, cpuCount, &enabledCount));
 
     bi->cpu_count = *cpuCount;
 
