@@ -3,8 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "asm.h"
-#include "ktypes.h"
+#include "kernel/asm.h"
+#include "kernel/ktypes.h"
 
 #ifdef __cplusplus
 extern "C"

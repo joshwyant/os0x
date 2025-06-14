@@ -1,5 +1,5 @@
 #include <efi.h>
-#include "kernel.h"
+#include "kernel/kernel.h"
 #include "boot/bootinfo.h"
 
 static void clear_screen(boot_info_t *bi, uint32_t color);
