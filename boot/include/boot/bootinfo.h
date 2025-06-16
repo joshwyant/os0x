@@ -33,6 +33,10 @@ typedef struct
     // InitRD Image
     uint32_t *initrd_base;
     size_t initrd_size;
+    // Page table physical address
+    page_table_physical_address_t page_table_physical;
+    // Page table virtual address
+    page_table_virtual_address_t page_table_virtual;
     // Graphics info
     graphics_info_t graphics_info;
     // Memory Map

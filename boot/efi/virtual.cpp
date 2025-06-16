@@ -10,6 +10,9 @@ EFI_STATUS load_kernel(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, co
     TRYWRAPFNS(create_page_tables((page_table_physical_address_t *)&pageTable),
                "Failed to create page tables");
 
+    bi->page_table_physical = (page_table_physical_address_t)pageTable;
+    bi->page_table_virtual = PT_L4_BASE;
+
     virtual_address_t stack_pointer;
     TraceLine("Mapping virtual address space...");
     TRYWRAPFNS(map_virtual_address_space(SystemTable, kernel, kernel_size, &kernel_info, bi, &stack_pointer, pageTable),
