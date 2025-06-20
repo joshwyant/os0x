@@ -110,27 +110,7 @@ inline PageAttributes &operator|=(PageAttributes &a, PageAttributes b)
 #define PT_L3_SIZE ((size_t)0x0000000040000000ULL)
 #define PT_L4_SIZE ((size_t)0x0000008000000000ULL)
 
-// Base address for tables (inefficient).
-#define PT_L1_BASE(addr) ((page_table_virtual_address_t)(PT_L2_BASE((virtual_address_t)(addr)) + PT_L2_IDX((virtual_address_t)(addr)) * PT_L1_SIZE))
-#define PT_L2_BASE(addr) ((page_table_virtual_address_t)(PT_L3_BASE((virtual_address_t)(addr)) + PT_L3_IDX((virtual_address_t)(addr)) * PT_L2_SIZE))
-#define PT_L3_BASE(addr) ((page_table_virtual_address_t)(PT_BASE + PT_L4_IDX((virtual_address_t)(addr)) * PT_L3_SIZE))
 #define PT_L4_BASE ((page_table_virtual_address_t)0xFFFFFFFFFFFFF000ULL)
-#define PT_L1_BASE_PTR(addr) ((page_table_virtual_ptr_t)PT_L1_BASE((virtual_address_t)(addr)))
-#define PT_L2_BASE_PTR(addr) ((page_table_virtual_ptr_t)PT_L2_BASE((virtual_address_t)(addr)))
-#define PT_L3_BASE_PTR(addr) ((page_table_virtual_ptr_t)PT_L3_BASE((virtual_address_t)(addr)))
-#define PT_L4_BASE_PTR ((page_table_virtual_ptr_t)PT_L4_BASE)
-
-// Addresses for entries in tables (inefficient).
-#define PT_L1_ENTRY(addr) ((page_table_entry_virtual_address_t)(PT_L1_BASE((virtual_address_t)(addr)) + PT_L1_IDX((virtual_address_t)(addr)) * 8))
-#define PT_L2_ENTRY(addr) ((page_table_entry_virtual_address_t)(PT_L2_BASE((virtual_address_t)(addr)) + PT_L2_IDX((virtual_address_t)(addr)) * 8))
-#define PT_L3_ENTRY(addr) ((page_table_entry_virtual_address_t)(PT_L3_BASE((virtual_address_t)(addr)) + PT_L3_IDX((virtual_address_t)(addr)) * 8))
-#define PT_L4_ENTRY(addr) ((page_table_entry_virtual_address_t)(PT_L4_BASE + PT_L4_IDX((virtual_address_t)(addr)) * 8))
-
-// Addresses for entries in tables (inefficient).
-#define PT_L1_ENTRY_PTR(addr) ((page_table_entry_virtual_ptr_t)PT_L1_ENTRY((virtual_address_t)(addr)))
-#define PT_L2_ENTRY_PTR(addr) ((page_table_entry_virtual_ptr_t)PT_L2_ENTRY((virtual_address_t)(addr)))
-#define PT_L3_ENTRY_PTR(addr) ((page_table_entry_virtual_ptr_t)PT_L3_ENTRY((virtual_address_t)(addr)))
-#define PT_L4_ENTRY_PTR(addr) ((page_table_entry_virtual_ptr_t)PT_L4_ENTRY((virtual_address_t)(addr)))
 
 #define PT_ENTRY(addr) ((page_table_entry_virtual_address_t)(PT_BASE | (((virtual_address_t)(addr) >> 9) & ~0x7ULL)))
 #define PT_ENTRY_PTR(addr) ((page_table_entry_virtual_ptr_t)PT_ENTRY((virtual_address_t)(addr)))

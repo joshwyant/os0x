@@ -131,6 +131,13 @@ EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *
     TRYWRAPFN(check_addr("kernel", (virtual_address_t)first_page, pml4));
     TRYWRAPFN(check_addr("kernel entry", (virtual_address_t)kernel_info->entry, pml4));
 
+    // Leave some scratch space for manipulating page tables later
+    // 1 page for a new PT
+    // 1 page for a new PD
+    // 1 page for a new PDP
+    bi->page_table_scratch_addr = next_page;
+    next_page += 3 * EFI_PAGE_SIZE;
+
     // for (;;)
     //     ;
 
@@ -492,6 +499,7 @@ EFI_STATUS create_page_tables(page_table_physical_address_ptr_t page_table_out)
 
     // Map it in(to itself)
     TraceLine("Mapping the page table into itself...");
+    // This is redundant if we could just set the entry manually
     TRYWRAPFN(map_page(PT_L4_BASE, (page_physical_address_t)pageTable, PageAttributes::PAGE_PRESENT | PageAttributes::PAGE_RW /*| PageAttributes::PAGE_NX*/, pageTable));
     TraceLine("Page tables created.");
 

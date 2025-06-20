@@ -5,6 +5,7 @@
 
 #include "kernel/asm.h"
 #include "kernel/ktypes.h"
+#include "kernel/paging.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -15,9 +16,24 @@ extern "C"
 
 #ifdef __cplusplus
 } // extern "C"
+namespace k
+{
+    class KernelContainer
+    {
+    public:
+        // paging.h
+        virtual KernelMemoryLayout &kernel_memory_layout_instance() = 0;
+        virtual PhysicalMemoryAllocator &physical_memory_allocator_instance() = 0;
+        virtual VirtualMemoryMapper &virtual_memory_mapper_instance() = 0;
+
+    protected:
+        KernelContainer() {};
+    };
+}
 #endif
 
-static void freeze()
+static void
+freeze()
 {
     disable_interrupts();
     while (TRUE)

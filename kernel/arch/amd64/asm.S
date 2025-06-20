@@ -3,6 +3,7 @@
 .global halt_cpu
 .global enable_interrupts
 .global disable_interrupts
+.global invalidate_page
 
 // Halts the CPU until the next interrupt
 halt_cpu:
@@ -17,4 +18,8 @@ enable_interrupts:
 // Disables interrupts (clears IF flag)
 disable_interrupts:
     cli
+    ret
+
+invalidate_page:
+    invlpg [rdi]
     ret

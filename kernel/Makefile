@@ -8,9 +8,9 @@ KERNEL_TARGET := x86_64-unknown-elf
 KERNEL_AS := x86_64-linux-gnu-gcc
 KERNEL_LD := x86_64-linux-gnu-ld
 KERNEL_CC := clang
-KERNEL_OBJS := obj/init/uefi.o obj/init/init.o obj/main.o obj/asm.o obj/lib/c/string.o
+KERNEL_OBJS := obj/init/uefi.o obj/init/init.o obj/main.o obj/asm.o obj/paging.o obj/lib/c/runtime_support.o obj/lib/cpp/runtime_support.o
 KERNEL_DEFINES := 
-KERNEL_CFLAGS := -target $(KERNEL_TARGET) -ffreestanding -nostdlib -fno-builtin -fno-pic -c -MMD -MP
+KERNEL_CFLAGS := -target $(KERNEL_TARGET) -ffreestanding -fno-exceptions -fno-rtti -nostdlib -fno-builtin -fno-pic -c -MMD -MP
 KERNEL_ASFLAGS := -ffreestanding -m64 -c -MMD -MP
 KERNEL_INCLUDE := $(INCLUDES) $(EFI_INCLUDES) -Iinclude
 KERNEL_CC_INVOKE := $(KERNEL_CC) $(KERNEL_CFLAGS) $(KERNEL_DEFINES) $(KERNEL_INCLUDE)
@@ -20,7 +20,7 @@ all: bin/kernel.elf
 rebuild: clean all
 
 obj:
-	@mkdir -p $@ $@/lib $@/lib/c $@/init
+	@mkdir -p $@ $@/lib $@/lib/c $@/lib/cpp $@/init
 
 bin:
 	@mkdir -p $@
