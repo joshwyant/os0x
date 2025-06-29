@@ -1,5 +1,5 @@
 OUTPUT_FORMAT(elf64-x86-64)
-ENTRY(kernel_boot)
+ENTRY(_start)
 
 . = 0xFFFFFF0000000000;
 

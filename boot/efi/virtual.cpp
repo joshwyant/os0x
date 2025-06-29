@@ -131,13 +131,6 @@ EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *
     TRYWRAPFN(check_addr("kernel", (virtual_address_t)first_page, pml4));
     TRYWRAPFN(check_addr("kernel entry", (virtual_address_t)kernel_info->entry, pml4));
 
-    // Leave some scratch space for manipulating page tables later
-    // 1 page for a new PT
-    // 1 page for a new PD
-    // 1 page for a new PDP
-    bi->page_table_scratch_addr = next_page;
-    next_page += 3 * EFI_PAGE_SIZE;
-
     // for (;;)
     //     ;
 
@@ -207,6 +200,7 @@ EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *
     //     ;
 
     // Identity map in our loader code and data
+    // If this changes, also update the unmapping code in kernel/init/uefi.cpp, UefiMemoryBootstrapper::~UefiMemoryBootstrapper()
     boot_memmap_t initmm;
     UINTN mapKey;
     page_virtual_address_t loader_page = (uint64_t)-1, loader_code_page;
@@ -286,6 +280,7 @@ EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE *SystemTable, const void *
     // for (;;)
     //     ;
 
+    bi->memory_end = next_page;
     TraceLine("End of mapping: %llp", next_page);
 
     TRYWRAPFN(check_addr("kernel", first_page, pml4));

@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <efi.h>
 #include "minc.h"
 #include "paging.h"
 
@@ -41,8 +42,8 @@ typedef struct
     graphics_info_t graphics_info;
     // Memory Map
     boot_memmap_t memory_map;
-    // Page table scratch - 3 pages
-    virtual_address_t page_table_scratch_addr;
+    // Next free address
+    virtual_address_t memory_end;
     // Stack info
     uint64_t cpu_count;
     page_ptr_t stack_area_base;

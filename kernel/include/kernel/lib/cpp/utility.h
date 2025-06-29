@@ -1,19 +1,5 @@
 #pragma once
 
-#include <stddef.h>
-
-inline void *operator new(size_t, void *ptr) noexcept { return ptr; }
-inline void operator delete(void *, void *) noexcept {} // no-op
-
-#define CHECK_STATUS()                 \
-    do                                 \
-    {                                  \
-        if (status != status_code::ok) \
-        {                              \
-            return status;             \
-        }                              \
-    } while (0)
-
 namespace k
 {
     template <typename T>
@@ -28,11 +14,4 @@ namespace k
         a = move(b);
         b = move(temp);
     }
-
-    enum class status_code
-    {
-        ok,
-        unspecified,
-        out_of_bounds,
-    };
-}
+} // namespace k
