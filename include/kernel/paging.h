@@ -1,10 +1,9 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
-#include "kernel/asm.h"
+#include "core/status.h"
 #include "kernel/lib/c/string.h"
 #include "kernel/lib/cpp/utility.h"
-#include "kernel/status.h"
 
 namespace k {
 class KernelMemoryLayout;

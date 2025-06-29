@@ -10,298 +10,290 @@ constexpr auto kByteMaskAllBitsSet = (uint8_t)0xFFU;
 constexpr auto kLongMaskAllBitsSet = 0xFFFFFFFFFFFFFFFFULL;
 constexpr auto kByteMaskRightmostBitSet = (uint8_t)1;
 
-uint8_t makeSetBitsMask(size_t &currentPage, size_t endPage);
-uint8_t makeUnsetBitsMask(size_t &currentPage, size_t endPage);
+uint8_t makeSetBitsMask(size_t& currentPage, size_t endPage);
+uint8_t makeUnsetBitsMask(size_t& currentPage, size_t endPage);
 
-#define CHECK_INIT_STATUS()                          \
-    do                                               \
-    {                                                \
-        if (initializationStatus_ != StatusCode::Ok) \
-            return StatusCode::InitializationError;  \
-    } while (0)
+#define CHECK_INIT_STATUS()                      \
+  do {                                           \
+    if (initializationStatus_ != StatusCode::Ok) \
+      return StatusCode::InitializationError;    \
+  } while (0)
 
-RecursivePageTables::RecursivePageTables(const KernelMemoryLayout &layout, const PhysicalMemoryAllocator &pallocator, const VirtualMemoryAllocator &vallocator, const MemoryBootstrapper &memoryBootstrapper)
+RecursivePageTables::RecursivePageTables(
+    const KernelMemoryLayout& layout, const PhysicalMemoryAllocator& pallocator,
+    const VirtualMemoryAllocator& vallocator,
+    const MemoryBootstrapper& memoryBootstrapper)
 
-    : PageTables(
-          memoryBootstrapper.pageTablePhysicalAddress(),
-          layout.pageTableAddress()),
+    : PageTables(memoryBootstrapper.pageTablePhysicalAddress(),
+                 layout.pageTableAddress()),
       tablesStart_{layout.pageTablesStart()},
       tablesEnd_{layout.pageTablesEnd()},
       pallocator_{pallocator},
-      vallocator_{vallocator}
-{
-}
+      vallocator_{vallocator} {}
 
-StatusCode RecursivePageTables::map(uintptr_t virtAddr, uintptr_t physAddr, PageAttr attributes) const
-{
-    StatusCode status;
-    const volatile PageTable *table = &pml4_;
+StatusCode RecursivePageTables::map(uintptr_t virtAddr, uintptr_t physAddr,
+                                    PageAttr attributes) const {
+  StatusCode status;
+  const volatile PageTable* table = &pml4_;
 
-    // Recurse page tables and make sure they exist; find the final page table
-    for (auto level = PageLevel::PML4; level > PageLevel::PT; level--)
-    {
-        // Get the next entry from the table using the virtual address
-        volatile PageEntry entry;
-        auto idx = entryIndex(virtAddr, level);
-        status = table->getEntry(idx, entry);
-        CHECK_STATUS(); // bounds check
+  // Recurse page tables and make sure they exist; find the final page table
+  for (auto level = PageLevel::PML4; level > PageLevel::PT; level--) {
+    // Get the next entry from the table using the virtual address
+    volatile PageEntry entry;
+    auto idx = entryIndex(virtAddr, level);
+    status = table->getEntry(idx, entry);
+    CHECK_STATUS();  // bounds check
 
-        // Get the subtable by calculating its address, potentially creating it if entry doesn't exist
-        // Parameterized subtable addressing is a property of recursive page tables.
-        volatile auto subtable =
-            (volatile PageTable *)tableAddress(virtAddr, level - 1);
-        if (!entry.present())
-        {
-            // Allocate a page for the subtable
-            uintptr_t subtableNewPaddr;
-            status = pallocator_.allocatePage(&subtableNewPaddr);
-            CHECK_STATUS(); // out of mem?
+    // Get the subtable by calculating its address, potentially creating it if entry doesn't exist
+    // Parameterized subtable addressing is a property of recursive page tables.
+    volatile auto subtable =
+        (volatile PageTable*)tableAddress(virtAddr, level - 1);
+    if (!entry.present()) {
+      // Allocate a page for the subtable
+      uintptr_t subtableNewPaddr;
+      status = pallocator_.allocatePage(&subtableNewPaddr);
+      CHECK_STATUS();  // out of mem?
 
-            // Bring subtable into virtual page table mapping space (calls invlpg)
-            // This is again possible thanks to recursive mapping.
-            mapNoTables((uintptr_t)subtable, subtableNewPaddr, PageAttr::Present | PageAttr::RW);
+      // Bring subtable into virtual page table mapping space (calls invlpg)
+      // This is again possible thanks to recursive mapping.
+      mapNoTables((uintptr_t)subtable, subtableNewPaddr,
+                  PageAttr::Present | PageAttr::RW);
 
-            // Clear the new page table
-            subtable->clear();
-        }
-
-        // Move down to the next table
-        // This will have just been mapped in
-        table = subtable;
+      // Clear the new page table
+      subtable->clear();
     }
 
-    // Set the new entry in the lowest page table (calls invlpg)
-    mapNoTables(virtAddr, physAddr, attributes);
+    // Move down to the next table
+    // This will have just been mapped in
+    table = subtable;
+  }
 
-    return StatusCode::Ok;
+  // Set the new entry in the lowest page table (calls invlpg)
+  mapNoTables(virtAddr, physAddr, attributes);
+
+  return StatusCode::Ok;
 }
 
-uint8_t makeSetBitsMask(size_t &currentPage, size_t endPage)
-{
-    auto byteMask = kByteMaskNoBitsSet;
-    for (; currentPage % UINT8_WIDTH != 0 && currentPage < endPage; currentPage++)
-    {
-        auto currentBit = currentPage % UINT8_WIDTH;
-        // clear the bit in the mask
-        byteMask |= static_cast<uint8_t>(kByteMaskRightmostBitSet << currentBit);
+uint8_t makeSetBitsMask(size_t& currentPage, size_t endPage) {
+  auto byteMask = kByteMaskNoBitsSet;
+  for (; currentPage % UINT8_WIDTH != 0 && currentPage < endPage;
+       currentPage++) {
+    auto currentBit = currentPage % UINT8_WIDTH;
+    // clear the bit in the mask
+    byteMask |= static_cast<uint8_t>(kByteMaskRightmostBitSet << currentBit);
+  }
+  return byteMask;
+}
+
+uint8_t makeUnsetBitsMask(size_t& currentPage, size_t endPage) {
+  return static_cast<uint8_t>(~makeSetBitsMask(currentPage, endPage));
+}
+
+void DefaultPhysicalMemoryAllocator::init(
+    const KernelContext* kernel, MemoryBootstrapper& bootstrapper) const {
+  auto& status = initializationStatus_;
+
+  // Get the page frame bitmap parameters right
+  const auto totalMemPages = bootstrapper.memorySize() / kPageSize;
+  auto pagesNeeded = totalMemPages / kBitsPerPage;
+  bitmapSize_ = pagesNeeded * kPageSize;
+
+  // Reserve our virtual memory space
+  status = bootstrapper.reserveVirtualMemory(
+      pagesNeeded, reinterpret_cast<uintptr_t*>(&bitmap_));
+  if (status != StatusCode::Ok)  // out of mem?
+    return;
+
+  const auto bitmapStart = reinterpret_cast<uintptr_t>(bitmap_);
+  auto currentPage = bitmapStart;
+
+  // Keep allocating [contiguous?] physical pages (bootstrap allocator used behind the scenes)
+  // until we have enough for the bitmap; Allocate and map them to virtual memory along the way
+  while (pagesNeeded > 0) {
+    // Allocate physical pages
+    uintptr_t physicalAddress;
+    size_t pagesAllocated;
+    status = kernel->pageAllocator().allocatePages(
+        pagesNeeded, &physicalAddress, &pagesAllocated);
+    if (status != StatusCode::Ok)
+      return;  // out of physical mem?
+
+    const auto bytesAllocated = pagesAllocated * kPageSize;
+
+    // Map them to virtual memory
+    status = kernel->pageTables().map(currentPage, physicalAddress,
+                                      PageAttr::Present | PageAttr::RW);
+    if (status != StatusCode::Ok)  // out of mem creating tables?
+      return;
+
+    // Clear the page (all 1's for "used" by default)
+    memset(reinterpret_cast<void*>(currentPage), kByteMaskAllBitsSet,
+           kPageSize);
+
+    // Advance
+    currentPage += bytesAllocated;
+    pagesNeeded -= pagesAllocated;
+  }
+
+  // Enumerate physical memory and mark where it's free
+  for (auto range : bootstrapper.processFreePhysicalMemoryPages()) {
+    const auto startPage = range.address / kPageSize;
+    auto endPage = startPage + range.count;
+    auto currentPage = startPage;
+
+    // We can set lowest free page
+    lowestFreePage_ = startPage;
+
+    // Build a bitmap for the first byte
+    if (currentPage % UINT8_WIDTH != 0) {
+      auto byteMask = makeUnsetBitsMask(currentPage, endPage);
+      bitmap_[startPage / UINT8_WIDTH] &= byteMask;
     }
-    return byteMask;
-}
 
-uint8_t makeUnsetBitsMask(size_t &currentPage, size_t endPage)
-{
-    return static_cast<uint8_t>(~makeSetBitsMask(currentPage, endPage));
-}
-
-void DefaultPhysicalMemoryAllocator::init(const KernelContext *kernel, MemoryBootstrapper &bootstrapper) const
-{
-    auto &status = initializationStatus_;
-
-    // Get the page frame bitmap parameters right
-    const auto totalMemPages = bootstrapper.memorySize() / kPageSize;
-    auto pagesNeeded = totalMemPages / kBitsPerPage;
-    bitmapSize_ = pagesNeeded * kPageSize;
-
-    // Reserve our virtual memory space
-    status = bootstrapper.reserveVirtualMemory(pagesNeeded, reinterpret_cast<uintptr_t *>(&bitmap_));
-    if (status != StatusCode::Ok) // out of mem?
-        return;
-
-    const auto bitmapStart = reinterpret_cast<uintptr_t>(bitmap_);
-    auto currentPage = bitmapStart;
-
-    // Keep allocating [contiguous?] physical pages (bootstrap allocator used behind the scenes)
-    // until we have enough for the bitmap; Allocate and map them to virtual memory along the way
-    while (pagesNeeded > 0)
-    {
-        // Allocate physical pages
-        uintptr_t physicalAddress;
-        size_t pagesAllocated;
-        status = kernel->pageAllocator().allocatePages(pagesNeeded, &physicalAddress, &pagesAllocated);
-        if (status != StatusCode::Ok)
-            return; // out of physical mem?
-
-        const auto bytesAllocated = pagesAllocated * kPageSize;
-
-        // Map them to virtual memory
-        status = kernel->pageTables().map(currentPage, physicalAddress, PageAttr::Present | PageAttr::RW);
-        if (status != StatusCode::Ok) // out of mem creating tables?
-            return;
-
-        // Clear the page (all 1's for "used" by default)
-        memset(reinterpret_cast<void *>(currentPage), kByteMaskAllBitsSet, kPageSize);
-
-        // Advance
-        currentPage += bytesAllocated;
-        pagesNeeded -= pagesAllocated;
+    // Write 0's for whole bytes
+    for (; currentPage + UINT8_WIDTH <= endPage; currentPage += UINT8_WIDTH) {
+      bitmap_[currentPage / UINT8_WIDTH] = kByteMaskNoBitsSet;
     }
 
-    // Enumerate physical memory and mark where it's free
-    for (auto range : bootstrapper.processFreePhysicalMemoryPages())
-    {
-        const auto startPage = range.address / kPageSize;
-        auto endPage = startPage + range.count;
-        auto currentPage = startPage;
-
-        // We can set lowest free page
-        lowestFreePage_ = startPage;
-
-        // Build a bitmap for the first byte
-        if (currentPage % UINT8_WIDTH != 0)
-        {
-            auto byteMask = makeUnsetBitsMask(currentPage, endPage);
-            bitmap_[startPage / UINT8_WIDTH] &= byteMask;
-        }
-
-        // Write 0's for whole bytes
-        for (; currentPage + UINT8_WIDTH <= endPage; currentPage += UINT8_WIDTH)
-        {
-            bitmap_[currentPage / UINT8_WIDTH] = kByteMaskNoBitsSet;
-        }
-
-        // final byte
-        if (currentPage % UINT8_WIDTH != 0 && currentPage < endPage)
-        {
-            auto lastByteIndex = currentPage / UINT8_WIDTH;
-            auto byteMask = makeUnsetBitsMask(currentPage, endPage);
-            bitmap_[lastByteIndex] &= byteMask;
-        }
+    // final byte
+    if (currentPage % UINT8_WIDTH != 0 && currentPage < endPage) {
+      auto lastByteIndex = currentPage / UINT8_WIDTH;
+      auto byteMask = makeUnsetBitsMask(currentPage, endPage);
+      bitmap_[lastByteIndex] &= byteMask;
     }
+  }
 }
 
-DefaultPhysicalMemoryAllocator::DefaultPhysicalMemoryAllocator(MemoryBootstrapper &memoryBootstrapper)
+DefaultPhysicalMemoryAllocator::DefaultPhysicalMemoryAllocator(
+    MemoryBootstrapper& memoryBootstrapper)
     : memorySize_(memoryBootstrapper.memorySize()),
-      lowestFreePage_(UINTPTR_MAX)
-{
-}
+      lowestFreePage_(UINTPTR_MAX) {}
 
-StatusCode DefaultPhysicalMemoryAllocator::allocatePage(uintptr_t *newPhyiscalAddressOut) const
-{
-    size_t pagesAllocated; // discard
-    return allocatePages(1, newPhyiscalAddressOut, &pagesAllocated);
+StatusCode DefaultPhysicalMemoryAllocator::allocatePage(
+    uintptr_t* newPhyiscalAddressOut) const {
+  size_t pagesAllocated;  // discard
+  return allocatePages(1, newPhyiscalAddressOut, &pagesAllocated);
 }
 
 template <typename T>
-bool DefaultPhysicalMemoryAllocator::alignedFreeCheckAdvanceAndMark(size_t &pageNo, size_t count, size_t *pagesAllocated) const
-{
-    constexpr auto sizeBits = sizeof(T) * kBitsPerByte;
-    const auto pageMapBits = bitmapSize_ * UINT8_WIDTH;
+bool DefaultPhysicalMemoryAllocator::alignedFreeCheckAdvanceAndMark(
+    size_t& pageNo, size_t count, size_t* pagesAllocated) const {
+  constexpr auto sizeBits = sizeof(T) * kBitsPerByte;
+  const auto pageMapBits = bitmapSize_ * UINT8_WIDTH;
 
-    // Bounds check
-    if (pageNo + sizeBits > pageMapBits)
-        return false;
+  // Bounds check
+  if (pageNo + sizeBits > pageMapBits)
+    return false;
 
-    // We can't use this if we're checking too many bits
-    if (count - *pagesAllocated < sizeBits)
-        return false;
+  // We can't use this if we're checking too many bits
+  if (count - *pagesAllocated < sizeBits)
+    return false;
 
-    const auto ptr = reinterpret_cast<T *>(bitmap_);
-    const auto i = pageNo / sizeBits;
+  const auto ptr = reinterpret_cast<T*>(bitmap_);
+  const auto i = pageNo / sizeBits;
 
-    const auto isFree = ptr[i] == 0;
-    if (isFree)
-    {
-        // Mark chunk as used
-        ptr[i] = static_cast<T>(kLongMaskAllBitsSet);
+  const auto isFree = ptr[i] == 0;
+  if (isFree) {
+    // Mark chunk as used
+    ptr[i] = static_cast<T>(kLongMaskAllBitsSet);
 
-        // Advance
-        pageNo += sizeBits - 1; // Account for page++ in outside loop
-        *pagesAllocated += sizeBits;
-    }
+    // Advance
+    pageNo += sizeBits - 1;  // Account for page++ in outside loop
+    *pagesAllocated += sizeBits;
+  }
 
-    return isFree;
+  return isFree;
 }
 
-StatusCode DefaultPhysicalMemoryAllocator::allocatePages(size_t count, uintptr_t *newPhyiscalAddressOut, size_t *pagesAllocated) const
-{
-    CHECK_INIT_STATUS();
+StatusCode DefaultPhysicalMemoryAllocator::allocatePages(
+    size_t count, uintptr_t* newPhyiscalAddressOut,
+    size_t* pagesAllocated) const {
+  CHECK_INIT_STATUS();
 
-    if (count == 0)
-    {
-        return StatusCode::OutOfRange;
+  if (count == 0) {
+    return StatusCode::OutOfRange;
+  }
+
+  const auto startPage = lowestFreePage_;
+  const auto bitmapPages = bitmapSize_ * UINT8_WIDTH;
+  *pagesAllocated = 0;
+
+  // Enumerate bitmap in chunks of 1 or 8*2^x bits
+  for (auto page = startPage; page < bitmapPages; page++) {
+    const auto bitmapPagesLeft = bitmapPages - page;
+    const auto pagesNeeded = count - *pagesAllocated;
+    const auto byte = page / UINT8_WIDTH;
+    const auto bit = page % UINT8_WIDTH;
+    const auto align = bit % UINT64_WIDTH;
+
+    // Fast way--try a chunk first.
+    switch (align) {
+      // 64-bit boundary
+      case 0:
+        if (alignedFreeCheckAdvanceAndMark<uint64_t>(page, count,
+                                                     pagesAllocated))
+          continue;
+        break;
+      // 32-bit boundary
+      case UINT32_WIDTH:
+        if (alignedFreeCheckAdvanceAndMark<uint32_t>(page, count,
+                                                     pagesAllocated))
+          continue;
+        break;
+      // 16-bit boundary
+      case UINT16_WIDTH:
+      case UINT16_WIDTH * 3:
+        if (alignedFreeCheckAdvanceAndMark<uint16_t>(page, count,
+                                                     pagesAllocated))
+          continue;
+        break;
+      // 8-bit boundary
+      case UINT8_WIDTH:
+      case UINT8_WIDTH * 3:
+      case UINT8_WIDTH * 5:
+      case UINT8_WIDTH * 7:
+        if (alignedFreeCheckAdvanceAndMark<uint8_t>(page, count,
+                                                    pagesAllocated))
+          continue;
+        break;
     }
 
-    const auto startPage = lowestFreePage_;
-    const auto bitmapPages = bitmapSize_ * UINT8_WIDTH;
-    *pagesAllocated = 0;
+    // Slow way, use partial byte
+    auto mask = kByteMaskRightmostBitSet << bit;
+    auto isFree = (bitmap_[byte] & mask) == kByteMaskNoBitsSet;
 
-    // Enumerate bitmap in chunks of 1 or 8*2^x bits
-    for (auto page = startPage; page < bitmapPages; page++)
-    {
-        const auto bitmapPagesLeft = bitmapPages - page;
-        const auto pagesNeeded = count - *pagesAllocated;
-        const auto byte = page / UINT8_WIDTH;
-        const auto bit = page % UINT8_WIDTH;
-        const auto align = bit % UINT64_WIDTH;
-
-        // Fast way--try a chunk first.
-        switch (align)
-        {
-        // 64-bit boundary
-        case 0:
-            if (alignedFreeCheckAdvanceAndMark<uint64_t>(page, count, pagesAllocated))
-                continue;
-            break;
-        // 32-bit boundary
-        case UINT32_WIDTH:
-            if (alignedFreeCheckAdvanceAndMark<uint32_t>(page, count, pagesAllocated))
-                continue;
-            break;
-        // 16-bit boundary
-        case UINT16_WIDTH:
-        case UINT16_WIDTH * 3:
-            if (alignedFreeCheckAdvanceAndMark<uint16_t>(page, count, pagesAllocated))
-                continue;
-            break;
-        // 8-bit boundary
-        case UINT8_WIDTH:
-        case UINT8_WIDTH * 3:
-        case UINT8_WIDTH * 5:
-        case UINT8_WIDTH * 7:
-            if (alignedFreeCheckAdvanceAndMark<uint8_t>(page, count, pagesAllocated))
-                continue;
-            break;
-        }
-
-        // Slow way, use partial byte
-        auto mask = kByteMaskRightmostBitSet << bit;
-        auto isFree = (bitmap_[byte] & mask) == kByteMaskNoBitsSet;
-
-        if (!isFree)
-        {
-            if (*pagesAllocated == 0)
-                continue; // Try another page;
-            break;        // Or, we have broken continuity, that's all the pages we can allocate at this address.
-        }
-
-        // Curteously find and update lowestFreePage once we have enough pages
-        if (pagesNeeded == 0)
-        {
-            lowestFreePage_ = page;
-            break;
-        }
-
-        // Mark used
-        bitmap_[byte] |= mask;
-        (*pagesAllocated)++;
+    if (!isFree) {
+      if (*pagesAllocated == 0)
+        continue;  // Try another page;
+      break;  // Or, we have broken continuity, that's all the pages we can allocate at this address.
     }
 
-    if (*pagesAllocated == 0)
-    {
-        lowestFreePage_ = bitmapPages; // literally no lowest free page
-        return StatusCode::OutOfMemory;
+    // Curteously find and update lowestFreePage once we have enough pages
+    if (pagesNeeded == 0) {
+      lowestFreePage_ = page;
+      break;
     }
 
-    *newPhyiscalAddressOut = startPage * kPageSize;
-    return StatusCode::Ok;
+    // Mark used
+    bitmap_[byte] |= mask;
+    (*pagesAllocated)++;
+  }
+
+  if (*pagesAllocated == 0) {
+    lowestFreePage_ = bitmapPages;  // literally no lowest free page
+    return StatusCode::OutOfMemory;
+  }
+
+  *newPhyiscalAddressOut = startPage * kPageSize;
+  return StatusCode::Ok;
 }
 
-StatusCode DefaultVirtualMemoryAllocator::allocatePage(uintptr_t *newVirtualAddressOut) const
-{
-    return StatusCode::NotImplemented;
+StatusCode DefaultVirtualMemoryAllocator::allocatePage(
+    uintptr_t* newVirtualAddressOut) const {
+  return StatusCode::NotImplemented;
 }
 
-StatusCode DefaultVirtualMemoryAllocator::allocatePages(size_t count, uintptr_t *newVirtualAddressOut) const
-{
-    return StatusCode::NotImplemented;
+StatusCode DefaultVirtualMemoryAllocator::allocatePages(
+    size_t count, uintptr_t* newVirtualAddressOut) const {
+  return StatusCode::NotImplemented;
 }

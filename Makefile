@@ -13,9 +13,9 @@ QEMU_FLAGS := -m $(MEM_SIZE) \
 		-vnc :1,password=off \
 		#-d int --no-reboot
 EFI_BIN_FNAME := BOOTX64.EFI
-EFI_SRC := boot/efi
+EFI_SRC := efi/src/main/cpp
 EFI_BIN := $(EFI_SRC)/bin
-KERNEL_SRC := kernel
+KERNEL_SRC := kernel/src/main/cpp
 KERNEL_BIN := $(KERNEL_SRC)/bin
 KERNEL_OBJ := $(KERNEL_SRC)/obj
 INITRD_SRC := $(KERNEL_OBJ)/initrd

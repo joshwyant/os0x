@@ -3,7 +3,7 @@
 #include "kernel.h"
 #include "kernel/lib/cpp/new.h"
 
-#include "boot/bootinfo.h"
+#include "packages/efi/bootinfo.h"
 
 // forward declarations
 class UefiMemoryBootstrapper;

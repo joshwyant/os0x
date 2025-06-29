@@ -2,13 +2,12 @@
 
 using namespace k;
 
-StatusCode kernel_main(const KernelContext &k)
-{
-    StatusCode status;
+StatusCode kernel_main(const KernelContext& k) {
+  StatusCode status;
 
-    auto &allocator = k.pageAllocator();
+  auto& allocator = k.pageAllocator();
 
-    Context().memoryLayout().heapEnd();
+  Context().memoryLayout().heapEnd();
 
-    return StatusCode::Ok;
+  return StatusCode::Ok;
 }

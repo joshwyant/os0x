@@ -10,9 +10,9 @@ EFI_OBJS := $(EFI_PREFIX)/lib/crt0-efi-x86_64.o obj/main.o obj/virtual.o obj/asm
 EFI_DEFINES := -DQUIET
 EFI_CFLAGS := -target $(EFI_TARGET) -ffreestanding -fno-stack-protector -mno-red-zone -fshort-wchar -nostdlib -fvisibility=hidden -c -MMD -MP
 EFI_ASFLAGS := -ffreestanding -m64 -c -MMD -MP
-INCLUDES := -I../../include
-EFI_INCLUDES := -I../include -I$(EFI_PREFIX)/include/efi -I$(EFI_PREFIX)/include/efi/x86_64
-EFI_INCLUDE := $(INCLUDES) $(EFI_INCLUDES) -Iinclude -I../../third_party/include
+INCLUDES := -I../../../../include
+EFI_INCLUDES := -I../../../include -I$(EFI_PREFIX)/include/efi -I$(EFI_PREFIX)/include/efi/x86_64
+EFI_INCLUDE := $(INCLUDES) $(EFI_INCLUDES)
 EFI_CC_INVOKE := $(EFI_CC) $(EFI_CFLAGS) $(EFI_DEFINES) $(EFI_INCLUDE)
 
 all: bin/$(EFI_BIN_FNAME)

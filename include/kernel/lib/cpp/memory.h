@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdatomic.h>
-#include "kernel.h"
+#include "kernel/kernel.h"
 #include "kernel/lib/cpp/utility.h"  // k::swap
 
 namespace k {

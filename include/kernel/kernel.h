@@ -3,9 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "kernel/asm.h"
+#include "core/status.h"
 #include "kernel/paging.h"
-#include "kernel/status.h"
 
 namespace k {
 // forward declarations
@@ -77,9 +76,3 @@ class KernelBootstrapper {
 
 // in main.cpp
 k::StatusCode kernel_main(const k::KernelContext&);
-
-static void freeze() {
-  disable_interrupts();
-  while (true)
-    halt_cpu();
-}

@@ -7,9 +7,10 @@
                 "/usr/local/include/efi",
                 "/usr/local/include/efi/x86_64",
                 "${workspaceFolder}/include",
-                "${workspaceFolder}/boot/include",
+                "${workspaceFolder}/include",
                 "${workspaceFolder}/kernel/include",
-                "${workspaceFolder}/third_party/include"
+                "${workspaceFolder}/kernel/include/arch/amd64",
+                "${workspaceFolder}/efi/include"
             ],
             "defines": [
                 "__x86_64__",

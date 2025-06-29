@@ -1,52 +1,32 @@
 #pragma once
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #define PAGE_SIZE 4096
 #define PAGE_TABLE_ENTRY_COUNT 512
 
 typedef uint64_t page_table_entry_t;
-typedef page_table_entry_t
-    *page_table_entry_ptr_t,
-    *page_table_entry_physical_ptr_t,
-    *page_table_entry_virtual_ptr_t;
+typedef page_table_entry_t *page_table_entry_ptr_t,
+    *page_table_entry_physical_ptr_t, *page_table_entry_virtual_ptr_t;
 __attribute__((aligned(PAGE_SIZE))) typedef unsigned char page_t[PAGE_SIZE];
-typedef page_t
-    *page_ptr_t,
-    *page_physical_ptr_t,
-    *page_virtual_ptr_t;
-__attribute__((aligned(PAGE_SIZE))) typedef page_table_entry_t page_table_t[PAGE_TABLE_ENTRY_COUNT];
-typedef page_table_t
-    *page_table_ptr_t,
-    *page_table_physical_ptr_t,
+typedef page_t *page_ptr_t, *page_physical_ptr_t, *page_virtual_ptr_t;
+__attribute__((aligned(PAGE_SIZE))) typedef page_table_entry_t
+    page_table_t[PAGE_TABLE_ENTRY_COUNT];
+typedef page_table_t *page_table_ptr_t, *page_table_physical_ptr_t,
     *page_table_virtual_ptr_t;
 typedef uint64_t address_t;
-typedef address_t
-    physical_address_t,
-    virtual_address_t,
-    page_address_t,
-    page_table_address_t,
-    page_table_entry_address_t,
-    *address_ptr_t,
-    *physical_address_ptr_t,
-    *virtual_address_ptr_t;
-typedef page_address_t
-    page_physical_address_t,
-    page_virtual_address_t,
-    *page_address_ptr_t,
-    *page_physical_address_ptr_t,
+typedef address_t physical_address_t, virtual_address_t, page_address_t,
+    page_table_address_t, page_table_entry_address_t, *address_ptr_t,
+    *physical_address_ptr_t, *virtual_address_ptr_t;
+typedef page_address_t page_physical_address_t, page_virtual_address_t,
+    *page_address_ptr_t, *page_physical_address_ptr_t,
     *page_virtual_address_ptr_t;
-typedef page_table_address_t
-    page_table_physical_address_t,
-    page_table_virtual_address_t,
-    *page_table_address_ptr_t,
-    *page_table_physical_address_ptr_t,
-    *page_table_virtual_address_ptr_t;
-typedef page_table_entry_address_t
-    page_table_entry_physical_address_t,
-    page_table_entry_virtual_address_t,
-    *page_table_entry_address_ptr_t,
+typedef page_table_address_t page_table_physical_address_t,
+    page_table_virtual_address_t, *page_table_address_ptr_t,
+    *page_table_physical_address_ptr_t, *page_table_virtual_address_ptr_t;
+typedef page_table_entry_address_t page_table_entry_physical_address_t,
+    page_table_entry_virtual_address_t, *page_table_entry_address_ptr_t,
     *page_table_entry_physical_address_ptr_t,
     *page_table_entry_virtual_address_ptr_t;
 
@@ -59,32 +39,31 @@ enum class PageAttributes : unsigned long
 typedef enum
 #endif
 {
-    PAGE_PRESENT = (1ULL << 0),
-    PAGE_RW = (1ULL << 1),
-    PAGE_USER = (1ULL << 2),
-    PAGE_PWT = (1ULL << 3),
-    PAGE_PCD = (1ULL << 4),
-    PAGE_ACCESSED = (1ULL << 5),
-    PAGE_DIRTY = (1ULL << 6),
-    PAGE_PAT = (1ULL << 7),
-    PAGE_GLOBAL = (1ULL << 8),
-    PAGE_NX = (1ULL << 63), // Only if EFER.NXE is enabled
+  PAGE_PRESENT = (1ULL << 0),
+  PAGE_RW = (1ULL << 1),
+  PAGE_USER = (1ULL << 2),
+  PAGE_PWT = (1ULL << 3),
+  PAGE_PCD = (1ULL << 4),
+  PAGE_ACCESSED = (1ULL << 5),
+  PAGE_DIRTY = (1ULL << 6),
+  PAGE_PAT = (1ULL << 7),
+  PAGE_GLOBAL = (1ULL << 8),
+  PAGE_NX = (1ULL << 63),  // Only if EFER.NXE is enabled
 #ifdef __cplusplus
 };
 
-inline PageAttributes operator|(PageAttributes a, PageAttributes b)
-{
-    return static_cast<PageAttributes>(static_cast<unsigned long long>(a) | static_cast<unsigned long long>(b));
+inline PageAttributes operator|(PageAttributes a, PageAttributes b) {
+  return static_cast<PageAttributes>(static_cast<unsigned long long>(a) |
+                                     static_cast<unsigned long long>(b));
 }
 
-inline PageAttributes operator&(PageAttributes a, PageAttributes b)
-{
-    return static_cast<PageAttributes>(static_cast<unsigned long long>(a) & static_cast<unsigned long long>(b));
+inline PageAttributes operator&(PageAttributes a, PageAttributes b) {
+  return static_cast<PageAttributes>(static_cast<unsigned long long>(a) &
+                                     static_cast<unsigned long long>(b));
 }
 
-inline PageAttributes &operator|=(PageAttributes &a, PageAttributes b)
-{
-    return a = a | b;
+inline PageAttributes& operator|=(PageAttributes& a, PageAttributes b) {
+  return a = a | b;
 }
 #else
 } PageAttributes;
@@ -98,7 +77,9 @@ inline PageAttributes &operator|=(PageAttributes &a, PageAttributes b)
 #define PT_L3_IDX(addr) ((size_t)(((virtual_address_t)(addr) >> 30) & 0x1FFULL))
 #define PT_L2_IDX(addr) ((size_t)(((virtual_address_t)(addr) >> 21) & 0x1FFULL))
 #define PT_L1_IDX(addr) ((size_t)(((virtual_address_t)(addr) >> 12) & 0x1FFULL))
-#define PT_IDX(addr, level) ((size_t)(((virtual_address_t)(addr) >> (12 + (int)(level - 1) * 9)) & 0x1FFULL))
+#define PT_IDX(addr, level)                                              \
+  ((size_t)(((virtual_address_t)(addr) >> (12 + (int)(level - 1) * 9)) & \
+            0x1FFULL))
 
 // Address of the page table maps.
 #define PT_BASE ((page_table_virtual_address_t)0xFFFFFF8000000000ULL)
@@ -112,32 +93,39 @@ inline PageAttributes &operator|=(PageAttributes &a, PageAttributes b)
 
 #define PT_L4_BASE ((page_table_virtual_address_t)0xFFFFFFFFFFFFF000ULL)
 
-#define PT_ENTRY(addr) ((page_table_entry_virtual_address_t)(PT_BASE | (((virtual_address_t)(addr) >> 9) & ~0x7ULL)))
-#define PT_ENTRY_PTR(addr) ((page_table_entry_virtual_ptr_t)PT_ENTRY((virtual_address_t)(addr)))
-#define PT_PAGE_BASE(pt_entry) ((page_table_virtual_address_t)((page_table_entry_virtual_address_t)(pt_entry) & ~0xFFFULL))
-#define PT_PAGE_BASE_PTR(pt_entry) ((page_table_virtual_ptr_t)PT_PAGE_BASE((page_table_entry_virtual_address_t)pt_entry))
-static inline void PT_COMPUTE_ENTRIES(virtual_address_t addr,
-                                      page_table_entry_virtual_address_ptr_t ptEntry,
-                                      page_table_entry_virtual_address_ptr_t pdEntry,
-                                      page_table_entry_virtual_address_ptr_t pdptEntry,
-                                      page_table_entry_virtual_address_ptr_t pml4Entry)
-{
-    // // Use only 48 bits of address
-    // addr &= 0x0000FFFFFFFFFFFF;
-    // // Divide by 4096 to get index into page table maps
-    // uint16_t maps_idx = addr >> 12;
-    // // Multiply by 8 to get address of entry into page table maps
-    // uint16_t maps_entry = maps_idx << 3;
-    // also add PT_BASE
-    // // That's equal to:
-    // *ptEntry = PT_BASE + (addr >> 9) & 0x0000007FFFFFFFF8ULL;
-    // // which is the same as
-    // *ptEntry = PT_BASE | (addr >> 9) & ~0x7ULL;
-    *ptEntry = PT_ENTRY(addr);
-    // Recursively find the higher level entry
-    *pdEntry = PT_ENTRY(*ptEntry);
-    *pdptEntry = PT_ENTRY(*pdEntry);
-    *pml4Entry = PT_ENTRY(*pdptEntry);
+#define PT_ENTRY(addr)                                                      \
+  ((page_table_entry_virtual_address_t)(PT_BASE |                           \
+                                        (((virtual_address_t)(addr) >> 9) & \
+                                         ~0x7ULL)))
+#define PT_ENTRY_PTR(addr) \
+  ((page_table_entry_virtual_ptr_t)PT_ENTRY((virtual_address_t)(addr)))
+#define PT_PAGE_BASE(pt_entry)                                                     \
+  ((page_table_virtual_address_t)((page_table_entry_virtual_address_t)(pt_entry) & \
+                                  ~0xFFFULL))
+#define PT_PAGE_BASE_PTR(pt_entry)         \
+  ((page_table_virtual_ptr_t)PT_PAGE_BASE( \
+      (page_table_entry_virtual_address_t)pt_entry))
+static inline void PT_COMPUTE_ENTRIES(
+    virtual_address_t addr, page_table_entry_virtual_address_ptr_t ptEntry,
+    page_table_entry_virtual_address_ptr_t pdEntry,
+    page_table_entry_virtual_address_ptr_t pdptEntry,
+    page_table_entry_virtual_address_ptr_t pml4Entry) {
+  // // Use only 48 bits of address
+  // addr &= 0x0000FFFFFFFFFFFF;
+  // // Divide by 4096 to get index into page table maps
+  // uint16_t maps_idx = addr >> 12;
+  // // Multiply by 8 to get address of entry into page table maps
+  // uint16_t maps_entry = maps_idx << 3;
+  // also add PT_BASE
+  // // That's equal to:
+  // *ptEntry = PT_BASE + (addr >> 9) & 0x0000007FFFFFFFF8ULL;
+  // // which is the same as
+  // *ptEntry = PT_BASE | (addr >> 9) & ~0x7ULL;
+  *ptEntry = PT_ENTRY(addr);
+  // Recursively find the higher level entry
+  *pdEntry = PT_ENTRY(*ptEntry);
+  *pdptEntry = PT_ENTRY(*pdEntry);
+  *pml4Entry = PT_ENTRY(*pdptEntry);
 
-    // Compute the base address of the page tables easily by truncating to multiple of 4096 bytes e.g. & ~0xFFF or PT_PAGE_BASE(entry)
+  // Compute the base address of the page tables easily by truncating to multiple of 4096 bytes e.g. & ~0xFFF or PT_PAGE_BASE(entry)
 }
