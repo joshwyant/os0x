@@ -3,7 +3,7 @@
 #include "core/status.h"
 #include "kernel/lib/cpp/type_traits.h"
 
-namespace k {
+namespace rtk {
 template <typename T>
 class ServiceProvider;
 class ServiceContext;
@@ -64,4 +64,4 @@ inline ServiceProvider<T>::~ServiceProvider() noexcept {}
 
 inline ServiceContext::~ServiceContext() noexcept {}
 
-}  // namespace k
+}  // namespace rtk
