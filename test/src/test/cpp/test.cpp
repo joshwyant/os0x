@@ -1,6 +1,5 @@
 #include <iostream>
 
-#include "core/stdlib/string.h"
 #include "test/test.h"
 
 bool testk::test_logging = true;
@@ -45,285 +44,306 @@ int test_false_not_equal_0_fails() {
 }
 
 int test_expect_success_fails() {
+  EXPECT_SUCCESS(failing_test);
   return 0;
 }
 
 int test_expect_empty_fails() {
+  EXPECT_EMPTY(".");
   return 0;
 }
 
 int test_expect_not_empty_fails() {
+  EXPECT_NOT_EMPTY("");
   return 0;
 }
 
 int test_expect_null_fails() {
+  EXPECT_NULL("");
   return 0;
 }
 
 int test_expect_m1_fails() {
+  EXPECT_M1(1);
   return 0;
 }
 
 int test_expect_0_fails() {
+  EXPECT_0(1);
   return 0;
 }
 
 int test_expect_1_fails() {
+  EXPECT_1(-1);
   return 0;
 }
 
 int test_expect_true_fails() {
+  EXPECT_TRUE(false);
   return 0;
 }
 
 int test_expect_false_fails() {
+  EXPECT_FALSE(true);
   return 0;
 }
 
 int test_expect_nonnull_fails() {
+  EXPECT_NONNULL(nullptr);
   return 0;
 }
 
 int test_expect_not_m1_fails() {
+  EXPECT_NOT_M1(-1);
   return 0;
 }
 
 int test_expect_not_0_fails() {
+  EXPECT_NOT_0(0);
   return 0;
 }
 
 int test_expect_not_1_fails() {
+  EXPECT_NOT_1(1);
   return 0;
 }
 
 int test_expect_greater_than_fails() {
+  EXPECT_GREATER_THAN(0, 1);
   return 0;
 }
 
 int test_expect_less_than_fails() {
+  EXPECT_LESS_THAN(1, 0);
   return 0;
 }
 
 int test_expect_greater_than_or_equal_fails() {
+  EXPECT_GREATER_THAN_OR_EQUAL(0, 1);
   return 0;
 }
 
 int test_expect_less_than_or_equal_fails() {
+  EXPECT_LESS_THAN_OR_EQUAL(1, 0);
   return 0;
 }
 
 int test_expect_not_greater_than_fails() {
+  EXPECT_NOT_GREATER_THAN(1, 0);
   return 0;
 }
 
 int test_expect_not_less_than_fails() {
+  EXPECT_NOT_LESS_THAN(0, 1);
   return 0;
 }
 
 int test_expect_not_greater_than_or_equal_fails() {
+  EXPECT_NOT_GREATER_THAN_OR_EQUAL(1, 0);
   return 0;
 }
 
 int test_expect_not_less_than_or_equal_fails() {
+  EXPECT_NOT_LESS_THAN_OR_EQUAL(0, 1);
   return 0;
 }
 
 int test_expect_success() {
-  return 1;
+  EXPECT_SUCCESS(successful_test);
+  return 0;
 }
 
-int test_true_equal_0() {
-  return 1;
+int test_true_equal_1() {
+  EXPECT_EQUAL(true, 1);
+  return 0;
 }
 
-int test_false_equal_m1() {
-  return 1;
+int test_false_equal_0() {
+  EXPECT_EQUAL(false, 0);
+  return 0;
 }
 
-int test_true_not_equal_1() {
-  return 1;
+int test_true_not_equal_0() {
+  EXPECT_NOT_EQUAL(true, 0);
+  return 0;
 }
 
-int test_false_not_equal_0() {
-  return 1;
+int test_false_not_equal_1() {
+  EXPECT_NOT_EQUAL(false, 1);
+  return 0;
 }
 
 int test_expect_empty() {
-  return 1;
+  EXPECT_EMPTY("");
+  return 0;
 }
 
 int test_expect_not_empty() {
-  return 1;
+  EXPECT_NOT_EMPTY(".");
+  return 0;
 }
 
 int test_expect_null() {
-  return 1;
+  const char* str = nullptr;
+  EXPECT_NULL(str);
+  return 0;
 }
 
 int test_expect_m1() {
-  return 1;
+  EXPECT_M1(-1);
+  return 0;
 }
 
 int test_expect_0() {
-  return 1;
+  EXPECT_0(0);
+  return 0;
 }
 
 int test_expect_1() {
-  return 1;
+  EXPECT_1(1);
+  return 0;
 }
 
 int test_expect_true() {
-  return 1;
+  EXPECT_TRUE(true);
+  return 0;
 }
 
 int test_expect_false() {
-  return 1;
+  EXPECT_FALSE(false);
+  return 0;
 }
 
 int test_expect_nonnull() {
-  return 1;
+  const char* str = ".";
+  EXPECT_NONNULL(str);
+  return 0;
 }
 
 int test_expect_not_m1() {
-  return 1;
+  EXPECT_NOT_M1(0);
+  return 0;
 }
 
 int test_expect_not_0() {
-  return 1;
+  EXPECT_NOT_0(-1);
+  return 0;
 }
 
 int test_expect_not_1() {
-  return 1;
+  EXPECT_NOT_1(0);
+  return 0;
 }
 
 int test_expect_greater_than() {
-  return 1;
+  EXPECT_GREATER_THAN(1, 0);
+  return 0;
 }
 
 int test_expect_less_than() {
-  return 1;
+  EXPECT_LESS_THAN(0, 1);
+  return 0;
 }
 
 int test_expect_greater_than_or_equal() {
-  return 1;
+  EXPECT_GREATER_THAN_OR_EQUAL(0, 0);
+  EXPECT_GREATER_THAN_OR_EQUAL(1, 0);
+  return 0;
 }
 
 int test_expect_less_than_or_equal() {
-  return 1;
+  EXPECT_LESS_THAN_OR_EQUAL(0, 1);
+  EXPECT_LESS_THAN_OR_EQUAL(1, 1);
+  return 0;
 }
 
 int test_expect_not_greater_than() {
-  return 1;
+  EXPECT_NOT_GREATER_THAN(0, 1);
+  EXPECT_NOT_GREATER_THAN(1, 1);
+  return 0;
 }
 
 int test_expect_not_less_than() {
-  return 1;
+  EXPECT_NOT_LESS_THAN(0, 0);
+  EXPECT_NOT_LESS_THAN(1, 0);
+  return 0;
 }
 
 int test_expect_not_greater_than_or_equal() {
-  return 1;
+  EXPECT_NOT_GREATER_THAN_OR_EQUAL(0, 1);
+  return 0;
 }
 
 int test_expect_not_less_than_or_equal() {
-  return 1;
-}
-
-int test() {
-  return 1;
-}
-
-int failure_tests() {
-  EXPECT_FAIL(test_expect_fail_fails);
-  EXPECT_FAIL(test_expect_success_fails);
-  EXPECT_FAIL(test_true_equal_0_fails);
-  EXPECT_FAIL(test_false_equal_m1_fails);
-  EXPECT_FAIL(test_true_not_equal_1_fails);
-  EXPECT_FAIL(test_false_not_equal_0_fails);
-  EXPECT_FAIL(test_expect_empty_fails);
-  EXPECT_FAIL(test_expect_not_empty_fails);
-  EXPECT_FAIL(test_expect_null_fails);
-  EXPECT_FAIL(test_expect_m1_fails);
-  EXPECT_FAIL(test_expect_0_fails);
-  EXPECT_FAIL(test_expect_1_fails);
-  EXPECT_FAIL(test_expect_true_fails);
-  EXPECT_FAIL(test_expect_false_fails);
-  EXPECT_FAIL(test_expect_nonnull_fails);
-  EXPECT_FAIL(test_expect_not_m1_fails);
-  EXPECT_FAIL(test_expect_not_0_fails);
-  EXPECT_FAIL(test_expect_not_1_fails);
-  EXPECT_FAIL(test_expect_greater_than_fails);
-  EXPECT_FAIL(test_expect_less_than_fails);
-  EXPECT_FAIL(test_expect_greater_than_or_equal_fails);
-  EXPECT_FAIL(test_expect_less_than_or_equal_fails);
-  EXPECT_FAIL(test_expect_not_greater_than_fails);
-  EXPECT_FAIL(test_expect_not_less_than_fails);
-  EXPECT_FAIL(test_expect_not_greater_than_or_equal_fails);
-  EXPECT_FAIL(test_expect_not_less_than_or_equal_fails);
+  EXPECT_NOT_LESS_THAN_OR_EQUAL(1, 0);
   return 0;
 }
 
-int tests() {
-  EXPECT_SUCCESS(successful_test);
-  EXPECT_SUCCESS(test_expect_fail);
-  EXPECT_SUCCESS(test_expect_success);
-  EXPECT_SUCCESS(test_true_equal_0);
-  EXPECT_SUCCESS(test_false_equal_m1);
-  EXPECT_SUCCESS(test_true_not_equal_1);
-  EXPECT_SUCCESS(test_false_not_equal_0);
-  EXPECT_SUCCESS(test_expect_empty);
-  EXPECT_SUCCESS(test_expect_not_empty);
-  EXPECT_SUCCESS(test_expect_null);
-  EXPECT_SUCCESS(test_expect_m1);
-  EXPECT_SUCCESS(test_expect_0);
-  EXPECT_SUCCESS(test_expect_1);
-  EXPECT_SUCCESS(test_expect_true);
-  EXPECT_SUCCESS(test_expect_false);
-  EXPECT_SUCCESS(test_expect_nonnull);
-  EXPECT_SUCCESS(test_expect_not_m1);
-  EXPECT_SUCCESS(test_expect_not_0);
-  EXPECT_SUCCESS(test_expect_not_1);
-  EXPECT_SUCCESS(test_expect_greater_than);
-  EXPECT_SUCCESS(test_expect_less_than);
-  EXPECT_SUCCESS(test_expect_greater_than_or_equal);
-  EXPECT_SUCCESS(test_expect_less_than_or_equal);
-  EXPECT_SUCCESS(test_expect_not_greater_than);
-  EXPECT_SUCCESS(test_expect_not_less_than);
-  EXPECT_SUCCESS(test_expect_not_greater_than_or_equal);
-  EXPECT_SUCCESS(test_expect_not_less_than_or_equal);
-  EXPECT_EQUAL(true, 1);
-  EXPECT_EQUAL(false, 0);
-  EXPECT_EQUAL(1, 1);
+void failure_tests() {
+  FAIL_TEST(test_expect_fail_fails);
+  FAIL_TEST(test_expect_success_fails);
+  FAIL_TEST(test_true_equal_0_fails);
+  FAIL_TEST(test_false_equal_m1_fails);
+  FAIL_TEST(test_true_not_equal_1_fails);
+  FAIL_TEST(test_false_not_equal_0_fails);
+  FAIL_TEST(test_expect_empty_fails);
+  FAIL_TEST(test_expect_not_empty_fails);
+  FAIL_TEST(test_expect_null_fails);
+  FAIL_TEST(test_expect_m1_fails);
+  FAIL_TEST(test_expect_0_fails);
+  FAIL_TEST(test_expect_1_fails);
+  FAIL_TEST(test_expect_true_fails);
+  FAIL_TEST(test_expect_false_fails);
+  FAIL_TEST(test_expect_nonnull_fails);
+  FAIL_TEST(test_expect_not_m1_fails);
+  FAIL_TEST(test_expect_not_0_fails);
+  FAIL_TEST(test_expect_not_1_fails);
+  FAIL_TEST(test_expect_greater_than_fails);
+  FAIL_TEST(test_expect_less_than_fails);
+  FAIL_TEST(test_expect_greater_than_or_equal_fails);
+  FAIL_TEST(test_expect_less_than_or_equal_fails);
+  FAIL_TEST(test_expect_not_greater_than_fails);
+  FAIL_TEST(test_expect_not_less_than_fails);
+  FAIL_TEST(test_expect_not_greater_than_or_equal_fails);
+  FAIL_TEST(test_expect_not_less_than_or_equal_fails);
+}
 
-  EXPECT_NOT_EQUAL(true, 2);
-  EXPECT_NOT_EQUAL(true, -1);
-  EXPECT_NOT_EQUAL(false, -1);
-  EXPECT_NOT_EQUAL(1, 2);
-
-  EXPECT("");
-  EXPECT(true);
-  EXPECT(1);
-
-  // EXPECT_NOT(nullptr); // generates warning
-  EXPECT_NOT(false);
-  EXPECT_NOT(0);
-
-  EXPECT_TRUE(1);
-  EXPECT_TRUE(true);
-
-  EXPECT_FALSE(0);
-  EXPECT_FALSE(false);
-
-  EXPECT_EMPTY("");
-  EXPECT_NOT_EMPTY(" ");
-
-  return 0;
+void succeeding_tests() {
+  TEST(successful_test);
+  TEST(test_expect_fail);
+  TEST(test_expect_success);
+  TEST(test_true_equal_1);
+  TEST(test_false_equal_0);
+  TEST(test_true_not_equal_0);
+  TEST(test_false_not_equal_1);
+  TEST(test_expect_empty);
+  TEST(test_expect_not_empty);
+  TEST(test_expect_null);
+  TEST(test_expect_m1);
+  TEST(test_expect_0);
+  TEST(test_expect_1);
+  TEST(test_expect_true);
+  TEST(test_expect_false);
+  TEST(test_expect_nonnull);
+  TEST(test_expect_not_m1);
+  TEST(test_expect_not_0);
+  TEST(test_expect_not_1);
+  TEST(test_expect_greater_than);
+  TEST(test_expect_less_than);
+  TEST(test_expect_greater_than_or_equal);
+  TEST(test_expect_less_than_or_equal);
+  TEST(test_expect_not_greater_than);
+  TEST(test_expect_not_less_than);
+  TEST(test_expect_not_greater_than_or_equal);
+  TEST(test_expect_not_less_than_or_equal);
 }
 
 int main(int argc, const char** argv) {
-  TEST(failure_tests);
-  TEST(tests);
+  failure_tests();
+  succeeding_tests();
 
-  std::cout << testk::successful_tests << " succeeded, " << testk::failed_tests
+  std::cout << "\n"
+            << testk::successful_tests << " succeeded, " << testk::failed_tests
             << " failed." << std::endl;
 
   return testk::failed_tests;

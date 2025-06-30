@@ -151,16 +151,32 @@ bool empty(const char* str) {
   _EXPECT2(testk::equals, "expected test \"" #testname "()\" to succeed", \
            testname(), 0)
 
-#define TEST(testname)                          \
-  do {                                          \
-    std::cout << "--- Test: " #testname "()\n"; \
-    if (testname() == 0) {                      \
-      testk::successful_tests++;                \
-      std::cout << "Success.\n\n";              \
-    } else {                                    \
-      testk::failed_tests++;                    \
-      std::cout << "Fail.\n\n";                 \
-    }                                           \
+#define TEST(fn)                       \
+  do {                                 \
+    std::cout << #fn "()\n";           \
+    if (fn() == 0) {                   \
+      testk::successful_tests++;       \
+      /*std::cout << "Success.\n\n";*/ \
+    } else {                           \
+      testk::failed_tests++;           \
+      std::cout << "Fail.\n\n";        \
+    }                                  \
+  } while (0)
+
+#define FAIL_TEST(fn)                        \
+  do {                                       \
+    std::cout << #fn "()\n";                 \
+    auto prev_logging = testk::test_logging; \
+    testk::test_logging = false;             \
+    auto testresult = fn();                  \
+    testk::test_logging = prev_logging;      \
+    if (testresult != 0) {                   \
+      testk::successful_tests++;             \
+      /*std::cout << "Success.\n\n";*/       \
+    } else {                                 \
+      testk::failed_tests++;                 \
+      std::cout << "Fail.\n\n";              \
+    }                                        \
   } while (0)
 
 extern bool test_logging;
