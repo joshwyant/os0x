@@ -132,23 +132,23 @@ bool empty(const char* str) {
 #define EXPECT_NOT_LESS_THAN_OR_EQUAL(expression, constant) \
   _EXPECT_NOT_ACTUAL(testk::lte, <=, expression, constant)
 
-#define EXPECT_FAIL(testname)                                   \
-  do {                                                          \
-    auto prev_logging = testk::test_logging;                    \
-    testk::test_logging = false;                                \
-    auto testresult = testname();                               \
-    testk::test_logging = prev_logging;                         \
-    if (testresult == 0) {                                      \
-      if (testk::test_logging) {                                \
-        std::cout << __FILE__ ":" << __LINE__ << ": "           \
-                  << "expected test " #testname "() to fail\n"; \
-      }                                                         \
-      return 1;                                                 \
-    }                                                           \
+#define EXPECT_FAIL(testname)                                       \
+  do {                                                              \
+    auto prev_logging = testk::test_logging;                        \
+    testk::test_logging = false;                                    \
+    auto testresult = testname();                                   \
+    testk::test_logging = prev_logging;                             \
+    if (testresult == 0) {                                          \
+      if (testk::test_logging) {                                    \
+        std::cout << __FILE__ ":" << __LINE__ << ": "               \
+                  << "expected test \"" #testname "()\" to fail\n"; \
+      }                                                             \
+      return 1;                                                     \
+    }                                                               \
   } while (0)
 
-#define EXPECT_SUCCESS(testname)                                      \
-  _EXPECT2(testk::equals, "expected test " #testname "() to succeed", \
+#define EXPECT_SUCCESS(testname)                                          \
+  _EXPECT2(testk::equals, "expected test \"" #testname "()\" to succeed", \
            testname(), 0)
 
 #define TEST(testname)                          \
