@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstring>
+#include <iostream>
 
 namespace testk {
 template <typename T1, typename T2>
@@ -131,6 +132,46 @@ bool empty(const char* str) {
   _EXPECT_NOT_ACTUAL(testk::gte, >=, expression, constant)
 #define EXPECT_NOT_LESS_THAN_OR_EQUAL(expression, constant) \
   _EXPECT_NOT_ACTUAL(testk::lte, <=, expression, constant)
+
+// TODO: Test this macro
+#define EXPECT_THROWS(expression, ...)                                     \
+  do {                                                                     \
+    auto _thrown = false;                                                  \
+    try {                                                                  \
+      (expression);                                                        \
+    } catch (__VA_ARGS__) {                                                \
+      _thrown = true;                                                      \
+    }                                                                      \
+    if (!_thrown) {                                                        \
+      if (testk::test_logging) {                                           \
+        std::cout << __FILE__ ":" << __LINE__ << ": "                      \
+                  << "expected (" #expression ")\" to throw " #__VA_ARGS__ \
+                     "\n";                                                 \
+      }                                                                    \
+      return 1;                                                            \
+    }                                                                      \
+  } while (0)
+
+// TODO: Test this macro
+// TODO: Add catch block for future rtk::test::exception
+// TODO: Use RTTI or something to determine type of exception
+// TODO: Allow exception type to be specified, in which
+//       event any other caught exception behaves like an
+//       unconditional EXPECT_THROWS
+#define EXPECT_DOES_NOT_THROW(expression)                      \
+  do {                                                         \
+    try {                                                      \
+      (expression);                                            \
+    } catch (std::exception e) {                               \
+      if (testk::test_logging) {                               \
+        std::cout << __FILE__ ":" << __LINE__ << ": "          \
+                  << "expected (" #expression                  \
+                     ")\" not to throw, but threw exception: " \
+                  << e.what() << "\n";                         \
+      }                                                        \
+      return 1;                                                \
+    }                                                          \
+  } while (0)
 
 #define EXPECT_FAIL(testname)                                       \
   do {                                                              \
