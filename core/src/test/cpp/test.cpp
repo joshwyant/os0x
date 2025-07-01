@@ -1,13 +1,16 @@
 #include <iostream>
 
 #include "test/test.h"
+#include "tests/stdlib/cstring.h"
 
 bool testk::test_logging = true;
 int testk::successful_tests = 0;
 int testk::failed_tests = 0;
 
 void failure_tests() {}
-void succeeding_tests() {}
+void succeeding_tests() {
+  stdlib_cstring_tests();
+}
 
 int main(int argc, const char** argv) {
   failure_tests();
