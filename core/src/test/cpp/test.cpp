@@ -1,0 +1,21 @@
+#include <iostream>
+
+#include "test/test.h"
+
+bool testk::test_logging = true;
+int testk::successful_tests = 0;
+int testk::failed_tests = 0;
+
+void failure_tests() {}
+void succeeding_tests() {}
+
+int main(int argc, const char** argv) {
+  failure_tests();
+  succeeding_tests();
+
+  std::cout << "\n"
+            << testk::successful_tests << " succeeded, " << testk::failed_tests
+            << " failed." << std::endl;
+
+  return testk::failed_tests;
+}
