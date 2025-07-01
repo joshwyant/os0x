@@ -1,6 +1,6 @@
 #pragma once
 
-namespace k {
+namespace rtk {
 template <typename T>
 inline T&& move(T& a) {
   return static_cast<T&&>(a);
@@ -11,4 +11,4 @@ inline void swap(T& a, T& b) noexcept {
   a = move(b);
   b = move(temp);
 }
-}  // namespace k
+}  // namespace rtk
