@@ -9,7 +9,7 @@ bool equals(T1 a, T2 b) {
 }
 template <>
 bool equals(const char* a, const char* b) {
-  return strcmp(a, b) == 0;
+  return std::strcmp(a, b) == 0;
 }
 template <typename T1, typename T2>
 bool gt(T1 a, T2 b) {
@@ -46,8 +46,8 @@ bool empty(const char* str) {
 
 #define _EXPECT1(fn, msg, expression)                                 \
   do {                                                                \
-    auto result = (expression);                                       \
-    if (!(fn(result))) {                                              \
+    auto _result = (expression);                                      \
+    if (!(fn(_result))) {                                             \
       if (testk::test_logging) {                                      \
         std::cout << __FILE__ ":" << __LINE__ << ": " << msg << "\n"; \
       }                                                               \
@@ -57,9 +57,9 @@ bool empty(const char* str) {
 
 #define _EXPECT2(fn, msg, a, b)                                       \
   do {                                                                \
-    auto aresult = (a);                                               \
-    auto bresult = (b);                                               \
-    if (!(fn(aresult, bresult))) {                                    \
+    auto _aresult = (a);                                              \
+    auto _bresult = (b);                                              \
+    if (!(fn(_aresult, _bresult))) {                                  \
       if (testk::test_logging) {                                      \
         std::cout << __FILE__ ":" << __LINE__ << ": " << msg << "\n"; \
       }                                                               \
@@ -67,10 +67,10 @@ bool empty(const char* str) {
     }                                                                 \
   } while (0)
 
-#define EXPECT_EQUAL(expression, expected)                                 \
-  _EXPECT2(                                                                \
-      testk::equals,                                                       \
-      "expected ((" #expression ") == " #expected ") but got " << aresult, \
+#define EXPECT_EQUAL(expression, expected)                                  \
+  _EXPECT2(                                                                 \
+      testk::equals,                                                        \
+      "expected ((" #expression ") == " #expected ") but got " << _aresult, \
       expression, expected)
 
 #define EXPECT_NOT_EQUAL(expression, expected)                              \
@@ -78,25 +78,25 @@ bool empty(const char* str) {
            expression, expected)
 
 #define _EXPECT_ACTUAL(fn, op, a, b) \
-  _EXPECT2(fn, "expected ((" #a ") " #op " " #b "), actual: " << aresult, a, b)
+  _EXPECT2(fn, "expected ((" #a ") " #op " " #b "), actual: " << _aresult, a, b)
 
-#define _EXPECT_NOT_ACTUAL(fn, op, a, b)                                       \
-  _EXPECT2(!fn, "expected !((" #a ") " #op " " #b "), actual: " << aresult, a, \
-           b)
+#define _EXPECT_NOT_ACTUAL(fn, op, a, b)                                     \
+  _EXPECT2(!fn, "expected !((" #a ") " #op " " #b "), actual: " << _aresult, \
+           a, b)
 
-#define EXPECT(expression)                                              \
-  _EXPECT1(testk::evaluates_to_true,                                    \
-           "expected (" #expression ") to be true, actual: " << result, \
+#define EXPECT(expression)                                               \
+  _EXPECT1(testk::evaluates_to_true,                                     \
+           "expected (" #expression ") to be true, actual: " << _result, \
            expression)
 
-#define EXPECT_NOT(expression)                                           \
-  _EXPECT1(testk::evaluates_to_false,                                    \
-           "expected (" #expression ") to be false, actual: " << result, \
+#define EXPECT_NOT(expression)                                            \
+  _EXPECT1(testk::evaluates_to_false,                                     \
+           "expected (" #expression ") to be false, actual: " << _result, \
            expression)
 
-#define EXPECT_EMPTY(expression)                                       \
-  _EXPECT1(testk::empty,                                               \
-           "expected ((" #expression ") == \"\"), actual: " << result, \
+#define EXPECT_EMPTY(expression)                                        \
+  _EXPECT1(testk::empty,                                                \
+           "expected ((" #expression ") == \"\"), actual: " << _result, \
            expression)
 
 #define EXPECT_NOT_EMPTY(expression) \
@@ -134,11 +134,11 @@ bool empty(const char* str) {
 
 #define EXPECT_FAIL(testname)                                       \
   do {                                                              \
-    auto prev_logging = testk::test_logging;                        \
+    auto _prev_logging = testk::test_logging;                       \
     testk::test_logging = false;                                    \
-    auto testresult = testname();                                   \
-    testk::test_logging = prev_logging;                             \
-    if (testresult == 0) {                                          \
+    auto _testresult = testname();                                  \
+    testk::test_logging = _prev_logging;                            \
+    if (_testresult == 0) {                                         \
       if (testk::test_logging) {                                    \
         std::cout << __FILE__ ":" << __LINE__ << ": "               \
                   << "expected test \"" #testname "()\" to fail\n"; \
@@ -163,20 +163,20 @@ bool empty(const char* str) {
     }                                  \
   } while (0)
 
-#define FAIL_TEST(fn)                        \
-  do {                                       \
-    std::cout << #fn "()\n";                 \
-    auto prev_logging = testk::test_logging; \
-    testk::test_logging = false;             \
-    auto testresult = fn();                  \
-    testk::test_logging = prev_logging;      \
-    if (testresult != 0) {                   \
-      testk::successful_tests++;             \
-      /*std::cout << "Success.\n\n";*/       \
-    } else {                                 \
-      testk::failed_tests++;                 \
-      std::cout << "Fail.\n\n";              \
-    }                                        \
+#define FAIL_TEST(fn)                         \
+  do {                                        \
+    std::cout << #fn "()\n";                  \
+    auto _prev_logging = testk::test_logging; \
+    testk::test_logging = false;              \
+    auto _testresult = fn();                  \
+    testk::test_logging = _prev_logging;      \
+    if (_testresult != 0) {                   \
+      testk::successful_tests++;              \
+      /*std::cout << "Success.\n\n";*/        \
+    } else {                                  \
+      testk::failed_tests++;                  \
+      std::cout << "Fail.\n\n";               \
+    }                                         \
   } while (0)
 
 extern bool test_logging;
