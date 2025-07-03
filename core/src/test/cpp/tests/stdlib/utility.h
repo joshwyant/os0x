@@ -33,8 +33,16 @@ int test_swap_char_ptrs() {
   return 0;
 }
 
+int test_as_const() {
+  auto a = 1;
+  const auto b = rtk::as_const(a);
+  EXPECT_1(b);
+  return 0;
+}
+
 void stdlib_utility_tests() {
   TEST(test_move);
   TEST(test_swap_ints);
   TEST(test_swap_char_ptrs);
+  TEST(test_as_const);
 }

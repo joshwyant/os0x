@@ -2,6 +2,7 @@
 
 #include "test/test.h"
 #include "tests/stdlib/cstring.h"
+#include "tests/stdlib/memory.h"
 #include "tests/stdlib/utility.h"
 
 bool testk::test_logging = true;
@@ -12,6 +13,8 @@ void failure_tests() {}
 void succeeding_tests() {
   std::cout << "\ncore/stdlib/cstring.h:\n";
   stdlib_cstring_tests();
+  std::cout << "\ncore/stdlib/memory.h\n";
+  stdlib_memory_tests();
   std::cout << "\ncore/stdlib/utility.h:\n";
   stdlib_utility_tests();
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace k {
+namespace rtk {
 template <class T, T v>
 // https://cplusplus.com/reference/type_traits/integral_constant/
 struct integral_constant {
@@ -15,6 +15,13 @@ struct integral_constant {
 struct true_type : public integral_constant<bool, true> {};
 struct false_type : public integral_constant<bool, false> {};
 
-template <typename>
-struct void_t {}
-}  // namespace k
+template <typename T1, typename T2>
+struct is_same : false_type {};
+
+template <typename T>
+struct is_same<T, T> : true_type {};
+
+// https://en.cppreference.com/w/cpp/types/void_t.html
+template <typename...>
+using void_t = void;
+}  // namespace rtk
