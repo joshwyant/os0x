@@ -1,5 +1,5 @@
+#include "core/stdlib/freestanding/stdint.h"
 #include "kernel.h"
-#include "kernel/lib/c/stdint.h"
 
 using namespace k;
 

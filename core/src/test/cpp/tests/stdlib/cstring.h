@@ -1,5 +1,6 @@
 #include <algorithm>
 #include "core/stdlib/cstring.h"
+#include "test/test.h"
 
 int test_strlen_nulltpr() {
   EXPECT_0(rtk::strlen(nullptr));

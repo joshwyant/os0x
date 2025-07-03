@@ -1,6 +1,6 @@
 #include "kernel.h"
 
-#include "kernel/lib/cpp/new.h"
+#include "core/stdlib/freestanding/new.h"
 
 using namespace k;
 

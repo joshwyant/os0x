@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stddef.h>
+#include <cstddef>
 
 // from https://github.com/dhepper/font8x8
 /**

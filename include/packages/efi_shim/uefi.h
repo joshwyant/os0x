@@ -1,7 +1,7 @@
 #pragma once
 
+#include "core/stdlib/freestanding/new.h"
 #include "kernel.h"
-#include "kernel/lib/cpp/new.h"
 
 #include "packages/efi/bootinfo.h"
 

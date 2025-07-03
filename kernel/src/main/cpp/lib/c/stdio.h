@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stddef.h>
-#include "kernel/lib/c/stdio.h"
+#include <cstddef>
+#include "core/stdlib/freestanding/stdio.h"
 
 enum class FormatFlags {
   None,

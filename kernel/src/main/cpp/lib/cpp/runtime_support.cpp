@@ -1,4 +1,4 @@
-#include "kernel/lib/cpp/new.h"
+#include "core/stdlib/freestanding/new.h"
 
 // <new>
 void* operator new(size_t, void* ptr) noexcept {

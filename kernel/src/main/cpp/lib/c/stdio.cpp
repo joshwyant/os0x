@@ -1,6 +1,6 @@
 #include "stdio.h"
-#include <stdarg.h>
-#include <stdint.h>
+#include <cstdarg>
+#include <cstdint>
 
 // https://cplusplus.com/reference/cstdio/printf/
 void Formatter::parsef(const char* format, ...) const {

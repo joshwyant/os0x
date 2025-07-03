@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stddef.h>
+#include <cstddef>
 
 void printf(const char* format, ...);
 void sprintf(char* s, const char* format, ...);

@@ -1,3 +1,3 @@
 #pragma once
 
-namespace k {}  // namespace k
+namespace rtk {}  // namespace rtk

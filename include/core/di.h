@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/status.h"
-#include "kernel/lib/cpp/type_traits.h"
+#include "core/stdlib/type_traits.h"
 
 namespace rtk {
 template <typename T>
