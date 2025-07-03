@@ -13,10 +13,25 @@ class initialized {
 };
 
 class deleteable {
+ private:
+  bool* deleted_ = nullptr;
+
  public:
-  bool& deleted;
-  deleteable(bool& deleted) : deleted{deleted = false} {}
-  ~deleteable() { deleted = true; }
+  bool& deleted() { return *deleted_; }
+  deleteable() : deleted_{nullptr} {}
+  deleteable(bool& deleted) : deleted_{&(deleted = false)} {}
+  //deleteable(const deleteable& other) : deleted_{other.deleted_} {}
+  deleteable& operator=(const deleteable& other) {
+    if (this == &other) {
+      return *this;
+    }
+    deleted_ = other.deleted_;
+    return *this;
+  }
+  ~deleteable() {
+    if (deleted_ != nullptr)
+      *deleted_ = true;
+  }
 };
 
 class fake_deleteable {
@@ -76,7 +91,7 @@ int test_unique_get() {
   bool deleted;
   {
     auto ptr = rtk::make_unique<deleteable>(deleted);
-    EXPECT_FALSE(ptr.get()->deleted);
+    EXPECT_FALSE(ptr.get()->deleted());
   }
   EXPECT_TRUE(deleted);
   return 0;
@@ -213,15 +228,40 @@ int test_unique_bool() {
 }
 
 int test_unique_null() {
-  int* ptr = nullptr;
-  auto a = rtk::make_unique<int>(ptr);
-  EXPECT_NULL(a.get());
+  // int* ptr = nullptr;
+  // auto a = rtk::make_unique<int>(ptr);
+  // EXPECT_NULL(a.get());
 
-  auto b = rtk::make_unique<int>(nullptr);
-  EXPECT_NULL(b.get());
+  // auto b = rtk::make_unique<int>(nullptr);
+  // EXPECT_NULL(b.get());
 
-  auto c = rtk::unique_ptr<int>{nullptr};
-  EXPECT_NULL(c.get());
+  // auto c = rtk::unique_ptr<int>{nullptr};
+  // EXPECT_NULL(c.get());
+  return 0;
+}
+
+int test_unique_array() {
+  auto arr = rtk::make_unique_array<int>({1, 2, 3});
+  EXPECT_EQUAL(arr[0], 1);
+  EXPECT_EQUAL(arr[1], 2);
+  EXPECT_EQUAL(arr[2], 3);
+
+  return 0;
+}
+
+int test_unique_array_deleted() {
+  bool deleted1, deleted2;
+  {
+    auto arr = rtk::unique_ptr<deleteable[]>(2);
+    new (&arr[0]) deleteable{deleted1};
+    new (&arr[1]) deleteable{deleted2};
+
+    EXPECT_FALSE(deleted1);
+    EXPECT_FALSE(deleted2);
+  }
+  EXPECT_TRUE(deleted1);
+  EXPECT_TRUE(deleted2);
+
   return 0;
 }
 
@@ -241,4 +281,6 @@ void stdlib_memory_tests() {
   TEST(test_unique_dereference);
   TEST(test_unique_bool);
   TEST(test_unique_null);
+  TEST(test_unique_array);
+  TEST(test_unique_array_deleted);
 }

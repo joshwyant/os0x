@@ -3,7 +3,7 @@
 #include <stdatomic.h>
 #include <initializer_list>
 #include "core/stdlib/stdlib.h"   // rtk::panic
-#include "core/stdlib/utility.h"  // rtk::swap
+#include "core/stdlib/utility.h"  // rtk::swap, rtk::as_const
 
 namespace rtk {
 template <class T>
@@ -214,7 +214,7 @@ class unique_ptr<T[], Deleter> : public unique_ptr_base<T, Deleter> {
   // Non-const access delegates to const logic for safety and DRYness.
   // Mutation is explicitly granted via const_cast.
   T& operator[](size_t index) {
-    return const_cast<T&>(rtk::as_const(this)[index]);
+    return const_cast<T&>(rtk::as_const(*this)[index]);
   }
 
  private:
@@ -235,9 +235,14 @@ unique_ptr<T, heap_deleter<T>> make_unique(std::nullptr_t) {
 }
 
 template <typename T>
-unique_ptr<T[], heap_deleter<T[]>> make_unique(std::initializer_list<T> args) {
-  return unique_ptr<T[], heap_deleter<T[]>>{
-      args};  //new T[](args, args.size()};
+unique_ptr<T[]> make_unique_array(std::initializer_list<T> args) {
+  auto ptr = new T[args.size()]{};
+  auto i = 0;
+  for (auto& arg : args) {
+    // copy (force lvalue reference)
+    ptr[i++] = arg;
+  };
+  return unique_ptr<T[]>{ptr, args.size()};
 }
 
 // Caller is responsible for clearing dangling pointers and
