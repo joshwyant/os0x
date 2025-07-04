@@ -5,7 +5,7 @@
 
 namespace testk {
 template <typename T1, typename T2>
-bool equals(T1 a, T2 b) {
+static bool equals(T1 a, T2 b) {
   return a == b;
 }
 template <>
@@ -13,31 +13,31 @@ bool equals(const char* a, const char* b) {
   return std::strcmp(a, b) == 0;
 }
 template <typename T1, typename T2>
-bool gt(T1 a, T2 b) {
+static bool gt(T1 a, T2 b) {
   return a > b;
 }
 template <typename T1, typename T2>
-bool lt(T1 a, T2 b) {
+static bool lt(T1 a, T2 b) {
   return a < b;
 }
 template <typename T1, typename T2>
-bool gte(T1 a, T2 b) {
+static bool gte(T1 a, T2 b) {
   return a >= b;
 }
 template <typename T1, typename T2>
-bool lte(T1 a, T2 b) {
+static bool lte(T1 a, T2 b) {
   return a <= b;
 }
 template <typename T>
-bool evaluates_to_false(T val) {
+static bool evaluates_to_false(T val) {
   return !val;
 }
 template <typename T>
-bool evaluates_to_true(T val) {
+static bool evaluates_to_true(T val) {
   return !!val;
 }
 template <typename T>
-bool empty(T str) {
+static bool empty(T str) {
   return str == "";
 }
 template <>

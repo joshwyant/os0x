@@ -155,19 +155,20 @@ class unique_ptr<T[], Deleter> : public unique_ptr_base<T, Deleter> {
   // null pointers are valid for safety
   // length is properly set to 0 if the pointer is null.
   unique_ptr(T* ptr, size_t len) : Base(ptr), len_{ptr ? len : 0} {}
-  unique_ptr(std::initializer_list<T> args) : len_{0} {
-    // Must fail gracefully when out of memory; return on nullptr
-    // unique_ptr is taking ownership of new array
-    auto newarr = new T[args.size()];
-    if (newarr == nullptr)
-      return;
-    size_t i = 0;
-    for (const T& val : args) {
-      newarr[i++] = val;
-    }
-    ptr_ = newarr;
-    len_ = args.size();
-  }
+  // use make_unique_array instead
+  // unique_ptr(std::initializer_list<T> args) : len_{0} {
+  //   // Must fail gracefully when out of memory; return on nullptr
+  //   // unique_ptr is taking ownership of new array
+  //   auto newarr = new T[args.size()];
+  //   if (newarr == nullptr)
+  //     return;
+  //   size_t i = 0;
+  //   for (const T& val : args) {
+  //     newarr[i++] = val;
+  //   }
+  //   ptr_ = newarr;
+  //   len_ = args.size();
+  // }
 
   explicit unique_ptr(size_t len) {
     // Don't try to allocate an empty array

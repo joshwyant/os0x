@@ -1,5 +1,3 @@
-#pragma once
-
 #include "core/stdlib/memory.h"
 #include "core/stdlib/type_traits.h"  // rtk::is_same
 #include "core/stdlib/utility.h"      // rtk::swap
