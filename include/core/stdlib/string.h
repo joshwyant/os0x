@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include "core/stdlib/cstring.h"
+#include "core/stdlib/freestanding/new.h"  // placement new
 #include "core/stdlib/memory.h"
 #include "core/stdlib/string_view.h"
 #include "core/stdlib/utility.h"
@@ -66,11 +67,31 @@ class string {
   size_t length() const { return is_short_ ? shortlen_ : len_; }
   virtual ~string() { reset(); }
 
+  string& operator+=(string_view other) { return append(other); }
+  string operator+(string_view other) {
+    string start;
+    auto len = length();
+    auto otherlen = other.length();
+    auto newlen = len + otherlen;
+    if (newlen < kMaxShortLen) {
+      start.append(*this);
+      start.append(other);
+      return start;
+    }
+    char* ptr = new char[newlen + 1];
+    strncpy(ptr, c_str(), len);
+    strncpy(ptr + len, other.c_str(), otherlen + 1);
+    start.is_short_ = false;
+    start.len_ = newlen;
+    start.cstr_ = {ptr, newlen + 1};
+    return start;
+  }
+
   string& append(string_view other) {
     const auto len = length();
     const auto otherlen = other.length();
     const auto newlen = len + otherlen;
-    const auto need_buffer = len + otherlen < kMaxShortLen;
+    const auto need_buffer = len + otherlen > kMaxShortLen - 1;
     // Create a new buffer if necessary
     char* dest = need_buffer ? new char[newlen + 1] : shortstr_;
     // Copy A to the buffer.
@@ -81,8 +102,9 @@ class string {
     strncpy(dest + len, other.c_str(), otherlen + 1);
     // Release old buffer
     if (need_buffer) {
-      if (!is_short_) {
-        cstr_.reset();
+      if (is_short_) {
+        // Un-corrupt
+        new (&cstr_) unique_ptr<char[]>{};
       }
       cstr_ = {dest, newlen + 1};
     }

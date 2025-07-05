@@ -52,18 +52,9 @@ class unique_ptr_base {
   // Can't copy-- it's what makes it unique
   unique_ptr_base(const unique_ptr_base& other) = delete;
   unique_ptr_base& operator=(const unique_ptr_base& other) = delete;
-  // Must also be defined in derived classes for consistency
-  friend void swap(unique_ptr_base& a, unique_ptr_base& b) noexcept {
-    using rtk::swap;
-
-    swap(a.ptr_, b.ptr_);
-  }
+  friend void swap(unique_ptr_base& a, unique_ptr_base& b) noexcept = delete;
   // Probably should be redefined in derived class as well
-  unique_ptr_base(unique_ptr_base&& other) noexcept {
-    // swap(*this, other); // don't!!!
-    ptr_ = other.ptr_;
-    other.ptr_ = nullptr;  // dangling pointer
-  }
+  unique_ptr_base(unique_ptr_base&& other) noexcept { *this = move(other); }
   // Probably should be redefined in derived class as well
   unique_ptr_base& operator=(unique_ptr_base&& other) noexcept {
     if (this != &other) {
@@ -182,20 +173,16 @@ class unique_ptr<T[], Deleter> : public unique_ptr_base<T, Deleter> {
         newarr;  // can be null on out-of-memory; otherwise takes ownership of new object
     len_ = newarr ? len : 0;  // proper null check on out-of-memory
   }
-  // Redefined for consistency with added length
   friend void swap(unique_ptr<T[], Deleter>& a,
-                   unique_ptr<T[], Deleter>& b) noexcept {
-    using rtk::swap;
-
-    swap(static_cast<Base&>(a), static_cast<Base&>(b));
-    swap(a.len_, b.len_);
-  }
+                   unique_ptr<T[], Deleter>& b) noexcept = delete;
   // Overridden because we must swap length as well
-  unique_ptr(unique_ptr&& other) noexcept { swap(*this, other); }
+  unique_ptr(unique_ptr&& other) noexcept { *this = move(other); }
   // Overridden because we must swap length as well
   unique_ptr& operator=(unique_ptr&& other) noexcept {
     if (this != &other) {
-      swap(*this, other);
+      static_cast<Base&>(*this) = move(other);
+      len_ = other.len_;
+      other.len_ = 0;
     }
     return *this;
   }
@@ -218,7 +205,10 @@ class unique_ptr<T[], Deleter> : public unique_ptr_base<T, Deleter> {
     return const_cast<T&>(rtk::as_const(*this)[index]);
   }
   void reset(T*) = delete;  // TODO: change from hack
-  void reset() { static_cast<Base*>(this)->reset(); }
+  void reset() {
+    static_cast<Base*>(this)->reset();
+    len_ = 0;
+  }
   void reset(T* ptr, size_t len) {
     reset();
     len_ = len;
