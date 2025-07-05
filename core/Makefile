@@ -3,13 +3,14 @@
 OBJ_DIR := obj/main/cpp
 TEST_OBJ_DIR := obj/test/cpp
 STDLIB_TESTS_OBJ_DIR := $(TEST_OBJ_DIR)/tests/stdlib
-OBJS := $(OBJ_DIR)/status.o
+OBJS := $(OBJ_DIR)/status.o $(OBJ_DIR)/ostream.o
 TEST_OBJS := $(OBJS) $(TEST_OBJ_DIR)/test.o \
 	$(STDLIB_TESTS_OBJ_DIR)/cstring.o \
 	$(STDLIB_TESTS_OBJ_DIR)/memory.o \
 	$(STDLIB_TESTS_OBJ_DIR)/utility.o \
 	$(STDLIB_TESTS_OBJ_DIR)/string.o \
-	$(STDLIB_TESTS_OBJ_DIR)/vector.o
+	$(STDLIB_TESTS_OBJ_DIR)/vector.o \
+	$(STDLIB_TESTS_OBJ_DIR)/ostream.o
 
 all: tests
 
