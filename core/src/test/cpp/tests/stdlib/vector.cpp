@@ -6,6 +6,7 @@ class vector_tests {
  public:
   static int test_stdlib_vector() {
     rtk::vector<int> v;
+    v.reserve(6);
     auto expected_capacity = 0;
     void* vec_ptr = nullptr;
     for (auto i = 1; i <= 10; i++) {
