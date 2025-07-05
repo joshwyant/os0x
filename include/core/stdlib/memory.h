@@ -149,7 +149,7 @@ template <class T, class Deleter>
 class unique_ptr<T[], Deleter> : public unique_ptr_base<T, Deleter> {
  public:
   using Base = unique_ptr_base<T, Deleter>;
-  unique_ptr() : Base(), len_{0} {}
+  unique_ptr() : Base(nullptr), len_{0} {}
 
   // Caller must avoid dangling pointers after relinquishing ownership to unique_ptr
   // null pointers are valid for safety

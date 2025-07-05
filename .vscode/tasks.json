@@ -26,7 +26,7 @@
             "label": "Build Core Test",
             "type": "shell",
             "options": {
-                "cwd": "${workspaceFolder}/core/src/test"
+                "cwd": "${workspaceFolder}/core"
             },
             "command": [
                 "make"
@@ -52,7 +52,7 @@
             "label": "Rebuild Core Test",
             "type": "shell",
             "options": {
-                "cwd": "${workspaceFolder}/core/src/test"
+                "cwd": "${workspaceFolder}"
             },
             "command": [
                 "make clean all"

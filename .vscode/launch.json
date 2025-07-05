@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "preLaunchTask": "Build Core Test",
-            "program": "${workspaceFolder}/core/src/test/bin/test",
+            "program": "${workspaceFolder}/core/bin/test",
             "args": [],
             "stopAtEntry": false,
             "cwd": ".",
