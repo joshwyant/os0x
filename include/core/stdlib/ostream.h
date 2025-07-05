@@ -8,12 +8,15 @@ namespace rtk {
 class ostream : public ios {
  public:
   // virtual
-  virtual ostream& operator<<(const string_view data) = 0;
+  virtual ostream& operator<<(string_view data) = 0;
   virtual ostream& flush() = 0;
   // other basic types
   ostream& operator<<(uintmax_t data);
   ostream& operator<<(intmax_t data);
   ostream& operator<<(bool data);
+  ostream& operator<<(const char* data) {
+    return operator<<(string_view{data});
+  }
   // manipulators
   ostream& operator<<(ostream& (*manipulator)(ostream&)) {
     return manipulator(*this);
