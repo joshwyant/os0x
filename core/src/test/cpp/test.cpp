@@ -5,6 +5,7 @@
 extern void stdlib_cstring_tests();
 extern void stdlib_memory_tests();
 extern void stdlib_utility_tests();
+extern void stdlib_string_tests();
 
 bool testk::test_logging = true;
 int testk::successful_tests = 0;
@@ -22,6 +23,8 @@ void succeeding_tests() {
   stdlib_utility_tests();
   // std::cout << "\n" << corestdlibinc << "vector.cpp\n";
   // stdlib_vector_tests();
+  std::cout << "\n" << corestdlibinc << "string.cpp\n";
+  stdlib_string_tests();
 }
 
 int main(int argc, const char** argv) {

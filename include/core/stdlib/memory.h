@@ -217,6 +217,12 @@ class unique_ptr<T[], Deleter> : public unique_ptr_base<T, Deleter> {
   T& operator[](size_t index) {
     return const_cast<T&>(rtk::as_const(*this)[index]);
   }
+  void reset(T*) = delete;  // TODO: change from hack
+  void reset() { static_cast<Base*>(this)->reset(); }
+  void reset(T* ptr, size_t len) {
+    reset();
+    len_ = len;
+  }
 
  private:
   using Base::ptr_;

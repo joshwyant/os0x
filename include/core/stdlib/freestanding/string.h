@@ -3,6 +3,7 @@
 #include <stddef.h>
 
 #ifdef __cplusplus
+namespace rtk {
 extern "C" {
 #endif
 // Implemented in kernel/lib/c/runtime_support.c
@@ -10,5 +11,6 @@ extern "C" {
 void* memcpy(void* dest, const void* src, size_t n);
 void memset(void* dest, unsigned char val, size_t n);
 #ifdef __cplusplus
-}  // cplusplus
-#endif
+}  // extern "C"
+}  // namespace rtk
+#endif  // cplusplus

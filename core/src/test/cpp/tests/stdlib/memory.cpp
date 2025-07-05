@@ -3,7 +3,7 @@
 #include "core/stdlib/utility.h"      // rtk::swap
 #include "test/test.h"
 
-static constexpr auto kInitialValue = 0xabadbabe;
+static constexpr auto kInitialValue = 0x1badbabe;
 
 class initialized {
  public:
