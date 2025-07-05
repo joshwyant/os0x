@@ -26,6 +26,6 @@ COPY --from=build-gnu-efi /gnu-efi-install /usr/local
 
 RUN apt update && apt install -y \
     binutils nasm clang cmake qemu-system-x86 ovmf \
-    mtools dosfstools qemu-utils
+    mtools dosfstools qemu-utils gdb
 RUN apt install -y gcc-x86-64-linux-gnu
 RUN apt install -y cpio

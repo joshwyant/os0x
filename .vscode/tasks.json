@@ -47,6 +47,32 @@
                     "endsPattern": ".",
                 }
             }
+        },
+        {
+            "label": "Rebuild Core Test",
+            "type": "shell",
+            "options": {
+                "cwd": "${workspaceFolder}/core/src/test"
+            },
+            "command": [
+                "make clean all"
+            ],
+            "dependsOn": [],
+            "problemMatcher": {
+                "pattern": [
+                    {
+                        "regexp": ".",
+                        "file": 1,
+                        "location": 2,
+                        "message": 3
+                    }
+                ],
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".",
+                    "endsPattern": ".",
+                }
+            }
         }
     ]
 }

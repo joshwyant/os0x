@@ -12,7 +12,7 @@
             "program": "${workspaceFolder}/core/src/test/bin/test",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": ".",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
