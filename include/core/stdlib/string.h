@@ -118,6 +118,8 @@ class string {
 
     return *this;
   }
+  void clear() { reset(); }
+  bool empty() { return len_ == 0; }
 
  private:
   friend class string_tests;

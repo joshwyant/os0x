@@ -17,17 +17,17 @@ constexpr const char* corestdlibinc = "core/stdlib/";
 
 void failure_tests() {}
 void succeeding_tests() {
-  std::cout << "\n" << corestdlibinc << "cstring.cpp:\n";
+  std::cout << "\n" << corestdlibinc << "cstring_tests.cpp:\n";
   stdlib_cstring_tests();
-  std::cout << "\n" << corestdlibinc << "memory.cpp\n";
+  std::cout << "\n" << corestdlibinc << "memory_tests.cpp\n";
   stdlib_memory_tests();
-  std::cout << "\n" << corestdlibinc << "utility.cpp:\n";
+  std::cout << "\n" << corestdlibinc << "utility_tests.cpp:\n";
   stdlib_utility_tests();
-  std::cout << "\n" << corestdlibinc << "string.cpp\n";
+  std::cout << "\n" << corestdlibinc << "string_tests.cpp\n";
   stdlib_string_tests();
-  std::cout << "\n" << corestdlibinc << "vector.cpp\n";
+  std::cout << "\n" << corestdlibinc << "vector_tests.cpp\n";
   stdlib_vector_tests();
-  std::cout << "\n" << corestdlibinc << "ostream.cpp\n";
+  std::cout << "\n" << corestdlibinc << "ostream_tests.cpp\n";
   stdlib_ostream_tests();
 }
 

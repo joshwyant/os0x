@@ -8,24 +8,21 @@ namespace rtk {
 class ostream : public ios {
  public:
   // virtual
-  virtual ostream& operator<<(string_view data) = 0;
+  virtual ostream& operator<<(const char* data) = 0;
   virtual ostream& flush() = 0;
   // other basic types
-  ostream& operator<<(uintmax_t data);
-  ostream& operator<<(intmax_t data);
-  ostream& operator<<(bool data);
-  ostream& operator<<(const char* data) {
-    return operator<<(string_view{data});
-  }
+  friend ostream& operator<<(ostream&, uintmax_t data);
+  friend ostream& operator<<(ostream&, intmax_t data);
+  friend ostream& operator<<(ostream&, bool data);
   // manipulators
-  ostream& operator<<(ostream& (*manipulator)(ostream&)) {
-    return manipulator(*this);
+  friend ostream& operator<<(ostream& s, ostream& (*manipulator)(ostream&)) {
+    return manipulator(s);
   }
-  ostream& operator<<(ios_base& (*manipulator)(ios_base&)) {
-    return static_cast<ostream&>(manipulator(*this));
+  friend ostream& operator<<(ostream& s, ios_base& (*manipulator)(ios_base&)) {
+    return static_cast<ostream&>(manipulator(s));
   }
-  ostream& operator<<(ios& (*manipulator)(ios&)) {
-    return static_cast<ostream&>(manipulator(*this));
+  friend ostream& operator<<(ostream& s, ios& (*manipulator)(ios&)) {
+    return static_cast<ostream&>(manipulator(s));
   }
 };  // class ostream
 inline ostream& flush(ostream& str) {

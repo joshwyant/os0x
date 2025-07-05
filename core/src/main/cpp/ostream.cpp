@@ -95,22 +95,22 @@ static inline void out(ostream& stream, uintmax_t value,
   }
 }
 
-ostream& ostream::operator<<(uintmax_t value) {
-  out(*this, value, flags_, width_, false, false, fill_);
-  return *this;
+ostream& rtk::operator<<(ostream& s, uintmax_t value) {
+  out(s, value, s.flags_, s.width_, false, false, s.fill_);
+  return s;
 }
 
-ostream& ostream::operator<<(intmax_t value) {
+ostream& rtk::operator<<(ostream& s, intmax_t value) {
   uintmax_t positive = static_cast<uintmax_t>(value);
   if (value < 0)
     positive = ~positive + 1;  // negate
-  out(*this, positive, flags_, width_, true, value < 0, fill_);
-  return *this;
+  out(s, positive, s.flags_, s.width_, true, value < 0, s.fill_);
+  return s;
 }
 
-ostream& ostream::operator<<(bool value) {
-  return *this << ((flags() & ios::uppercase) != ios::fmtflags::none
-                       ? value ? "TRUE" : "FALSE"
-                   : value ? "true"
-                           : "false");
+ostream& rtk::operator<<(ostream& s, bool value) {
+  return s << ((s.flags() & ios::uppercase) != ios::fmtflags::none
+                   ? value ? "TRUE" : "FALSE"
+               : value ? "true"
+                       : "false");
 }
