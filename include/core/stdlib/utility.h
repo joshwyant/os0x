@@ -16,6 +16,45 @@ struct remove_reference<T&&> {
 };
 
 template <typename T>
+struct remove_pointer {
+  using type = T;
+};
+template <typename T>
+struct remove_pointer<T*> {
+  using type = T;
+};
+template <typename T>
+struct remove_pointer<T**> {
+  using type = T;
+};
+
+template <typename T>
+struct remove_pointer_const {
+  using type = T;
+};
+template <typename T>
+struct remove_pointer_const<const T*> {
+  using type = T;
+};
+template <typename T>
+struct remove_pointer_const<const T**> {
+  using type = T;
+};
+
+template <typename T>
+struct remove_array {
+  using type = T;
+};
+template <typename T>
+struct remove_array<T[]> {
+  using type = T;
+};
+template <typename T>
+struct remove_array<T (&)[]> {
+  using type = T;
+};
+
+template <typename T>
 inline typename remove_reference<T>::type&& move(T&& a) {
   // accepts lvalue or rvalue, returns rvalue
   // - T&& is forwarding reference, not rvalue like int&&

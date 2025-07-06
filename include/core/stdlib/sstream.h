@@ -6,7 +6,7 @@
 namespace rtk {
 class ostringstream : public ostream {
  public:
-  ostream& operator<<(const char* data) override {
+  ostream& write(const char* data) override {
     str_.append(data);
     return *this;
   }

@@ -95,17 +95,13 @@ static inline void out(ostream& stream, uintmax_t value,
   }
 }
 
-ostream& rtk::operator<<(ostream& s, uintmax_t value) {
-  out(s, value, s.flags_, s.width_, false, false, s.fill_);
-  return s;
-}
-
-ostream& rtk::operator<<(ostream& s, intmax_t value) {
-  uintmax_t positive = static_cast<uintmax_t>(value);
-  if (value < 0)
-    positive = ~positive + 1;  // negate
-  out(s, positive, s.flags_, s.width_, true, value < 0, s.fill_);
-  return s;
+ostream& ostream::write(uintmax_t value, bool is_signed) {
+  auto positive = value;
+  if (is_signed && static_cast<intmax_t>(value) < 0)
+    positive = ~positive + 1;  // "two's complement" - change sign
+                               // by flipping the bits and adding one
+  out(*this, positive, flags_, width_, is_signed, value < 0, fill_);
+  return *this;
 }
 
 ostream& rtk::operator<<(ostream& s, bool value) {

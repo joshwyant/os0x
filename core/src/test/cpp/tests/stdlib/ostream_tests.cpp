@@ -32,12 +32,25 @@ class ostream_tests {
     EXPECT_EQUAL(as_const(ss4.str()).c_str(), "0x000000001badbabe");
 
     ostringstream ss5;
-    ss5 << 0ULL;
+    ss5 << 0;
     EXPECT_EQUAL(as_const(ss5.str()).c_str(), "0");
 
     ostringstream ss6;
-    ss6 << 123L;
-    EXPECT_EQUAL(as_const(ss6.str()).c_str(), "123");
+    ss6 << true;
+    EXPECT_EQUAL(as_const(ss6.str()).c_str(), "true");
+    ss6.str().clear();
+    ss6 << false;
+    EXPECT_EQUAL(as_const(ss6.str()).c_str(), "false");
+    ss6.str().clear();
+    ss6 << uppercase << true;
+    EXPECT_EQUAL(as_const(ss6.str()).c_str(), "TRUE");
+    ss6.str().clear();
+    ss6 << uppercase << false;
+    EXPECT_EQUAL(as_const(ss6.str()).c_str(), "FALSE");
+
+    ostringstream ss7;
+    ss7 << 123L;
+    EXPECT_EQUAL(as_const(ss7.str()).c_str(), "123");
 
     return 0;
   }
