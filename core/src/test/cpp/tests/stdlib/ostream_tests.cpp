@@ -14,43 +14,64 @@ class ostream_tests {
     return 0;
   }
   static int test_ostream_hex() {
-    ostringstream ss1;
-    ss1 << hex << 0x1badbabeUL;
-    EXPECT_EQUAL(as_const(ss1.str()).c_str(), "1badbabe");
+    ostringstream ss;
+    ss << hex << 0x1badbabeUL;
+    EXPECT_EQUAL(as_const(ss.str()).c_str(), "1badbabe");
 
-    ostringstream ss2;
-    ss2 << hex << showbase << 0x1badbabeUL;
-    EXPECT_EQUAL(as_const(ss2.str()).c_str(), "0x1badbabe");
+    ss = {};
+    ss << hex << showbase << 0x1badbabeUL;
+    EXPECT_EQUAL(as_const(ss.str()).c_str(), "0x1badbabe");
 
-    ostringstream ss3;
-    ss3 << hex << showbase << uppercase << 0x1badbabeUL;
-    EXPECT_EQUAL(as_const(ss3.str()).c_str(), "0X1BADBABE");
+    ss = {};
+    ss << hex << showbase << uppercase << 0x1badbabeUL;
+    EXPECT_EQUAL(as_const(ss.str()).c_str(), "0X1BADBABE");
 
-    ostringstream ss4;
-    ss4 << hex << showbase << setw(18) << setfill('0') << internal
-        << 0x000000001badbabeUL;
-    EXPECT_EQUAL(as_const(ss4.str()).c_str(), "0x000000001badbabe");
+    ss = {};
+    ss << hex << showbase << setw(18) << setfill('0') << internal
+       << 0x1badbabeUL;
+    EXPECT_EQUAL(as_const(ss.str()).c_str(), "0x000000001badbabe");
 
-    ostringstream ss5;
-    ss5 << 0;
-    EXPECT_EQUAL(as_const(ss5.str()).c_str(), "0");
+    ss = {};
+    ss << hex << showbase << setw(18) << setfill('0') << left << 0x1badbabeUL;
+    EXPECT_EQUAL(as_const(ss.str()).c_str(),
+                 "000000000x1badbabe");  // wrong config but expected behavior
 
-    ostringstream ss6;
-    ss6 << true;
-    EXPECT_EQUAL(as_const(ss6.str()).c_str(), "true");
-    ss6.str().clear();
-    ss6 << false;
-    EXPECT_EQUAL(as_const(ss6.str()).c_str(), "false");
-    ss6.str().clear();
-    ss6 << uppercase << true;
-    EXPECT_EQUAL(as_const(ss6.str()).c_str(), "TRUE");
-    ss6.str().clear();
-    ss6 << uppercase << false;
-    EXPECT_EQUAL(as_const(ss6.str()).c_str(), "FALSE");
+    ss = {};
+    ss << hex << showbase << setw(18) << setfill('0') << right << 0x1badbabeUL;
+    EXPECT_EQUAL(as_const(ss.str()).c_str(),
+                 "0x1badbabe00000000");  // wrong config but expected behavior
 
-    ostringstream ss7;
-    ss7 << 123L;
-    EXPECT_EQUAL(as_const(ss7.str()).c_str(), "123");
+    ss = {};
+    ss << 0;
+    EXPECT_EQUAL(as_const(ss.str()).c_str(), "0");
+
+    ss = {};
+    ss << setfill('0') << setw(4) << 0;
+    EXPECT_EQUAL(as_const(ss.str()).c_str(), "0000");
+
+    ss = {};
+    ss << setfill(' ') << setw(4) << left << 23;
+    EXPECT_EQUAL(as_const(ss.str()).c_str(), "  23");
+
+    ss = {};
+    ss << true;
+    EXPECT_EQUAL(as_const(ss.str()).c_str(), "true");
+
+    ss = {};
+    ss << false;
+    EXPECT_EQUAL(as_const(ss.str()).c_str(), "false");
+
+    ss = {};
+    ss << uppercase << true;
+    EXPECT_EQUAL(as_const(ss.str()).c_str(), "TRUE");
+
+    ss = {};
+    ss << uppercase << false;
+    EXPECT_EQUAL(as_const(ss.str()).c_str(), "FALSE");
+
+    ss = {};
+    ss << 123L;
+    EXPECT_EQUAL(as_const(ss.str()).c_str(), "123");
 
     return 0;
   }
