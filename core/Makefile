@@ -2,7 +2,8 @@
 
 OBJ_DIR := obj/main/cpp
 TEST_OBJ_DIR := obj/test/cpp
-STDLIB_TESTS_OBJ_DIR := $(TEST_OBJ_DIR)/tests/stdlib
+CORE_TESTS_OBJ_DIR := $(TEST_OBJ_DIR)/tests
+STDLIB_TESTS_OBJ_DIR := $(CORE_TESTS_OBJ_DIR)/stdlib
 OBJS := $(OBJ_DIR)/status.o $(OBJ_DIR)/ostream.o
 TEST_OBJS := $(OBJS) $(TEST_OBJ_DIR)/core_tests.o \
 	$(STDLIB_TESTS_OBJ_DIR)/cstring_tests.o \
@@ -10,7 +11,8 @@ TEST_OBJS := $(OBJS) $(TEST_OBJ_DIR)/core_tests.o \
 	$(STDLIB_TESTS_OBJ_DIR)/utility_tests.o \
 	$(STDLIB_TESTS_OBJ_DIR)/string_tests.o \
 	$(STDLIB_TESTS_OBJ_DIR)/vector_tests.o \
-	$(STDLIB_TESTS_OBJ_DIR)/ostream_tests.o
+	$(STDLIB_TESTS_OBJ_DIR)/ostream_tests.o \
+	$(CORE_TESTS_OBJ_DIR)/logging_tests.o
 
 all: tests
 

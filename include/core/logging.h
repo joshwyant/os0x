@@ -78,8 +78,6 @@ inline Logger::~Logger() noexcept {}
 
 }  // namespace rtk
 
-#undef LOGLEVEL_LIST
-
 #ifndef STRINGIZE
 #define STRINGIZE(x) STRINGIZE2(x)
 #define STRINGIZE2(x) #x
