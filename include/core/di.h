@@ -57,8 +57,6 @@ class ServiceContext {
   ServiceContext() = default;
 };  // class ServiceContainer
 
-StatusCode CreateServices();
-
 template <typename T>
 inline ServiceProvider<T>::~ServiceProvider() noexcept {}
 
