@@ -14,7 +14,7 @@
 #define STACK_SIZE 0x10000  // 64kb
 
 // Add debug information to a message
-#define DEBUGPREFIX(type) __FILE__ ":" LINE_STRING ": " #type ": "
+#define DEBUGPREFIX(type) __FILE__ ":" STRINGIZE(__LINE__) ": " #type ": "
 #define Error(msg, ...) Log(ErrorLevel, DEBUGPREFIX(Error) msg, __VA_ARGS__)
 #define Info(msg, ...) Log(InfoLevel, msg, __VA_ARGS__)
 #define Warning(msg, ...) \
@@ -40,10 +40,10 @@
       Print(L##msg __VA_OPT__(, ) __VA_ARGS__);                          \
     }                                                                    \
   while (0)
-
+#ifndef STRINGIZE
 #define STRINGIZE(x) STRINGIZE2(x)
 #define STRINGIZE2(x) #x
-#define LINE_STRING STRINGIZE(__LINE__)
+#endif
 // Wraps the error checking blocks in the uefi call wrapper
 // We use uefi_call_wrapper because we're using gnu-efi, which has to translate the gcc-based calling convention
 // to the win32 calls of UEFI.
