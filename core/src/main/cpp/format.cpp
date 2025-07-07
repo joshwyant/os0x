@@ -22,7 +22,12 @@ void Formatter::vparsef(const char* format, va_list arglist) const {
   intmax_t widenedSigned;
 
   while (*c_) {
-    if (*c_ == '%') {
+    if (*c_ != '%') {
+      // Just print the character.
+      // Make a string to print
+      char c[]{*(c_++), '\0'};
+      outputChars(c);
+    } else {
       c_++;
       parseFlags();
       if (parseWidth() == -1) {
@@ -30,165 +35,167 @@ void Formatter::vparsef(const char* format, va_list arglist) const {
       }
       parsePrecision();
       parseLength();
-    }
-    switch (*c_) {
-      case 'd':
-      case 'i':
-        // signed decimal integer
-        c_++;
-        switch (size_) {
-          case sizeof(int64_t):
-            widenedSigned = va_arg(arglist, int64_t);
-            break;
-          case sizeof(int8_t):   // automatically promoted to int in varargs
-          case sizeof(int16_t):  //
-          case sizeof(int32_t):
-          default:
-            widenedSigned = static_cast<intmax_t>(va_arg(arglist, int32_t));
-            break;
-        }
-        outputNumber(static_cast<uintmax_t>(widenedSigned), true, false, 10);
-        break;
-      case 'u':
-        // unsigned decimal integer
-      case 'o':
-        // unsigned octal
-      case 'x':
-        // unsigned hexadecimal integer
-      case 'X':
-        // unsigned hexadecimal integer (uppercase)
-      case 'p':
-        // Pointer address
-        switch (size_) {
-          case sizeof(uint64_t):
-            widened = va_arg(arglist, uint64_t);
-            break;
-          case sizeof(uint8_t):   // automatically promoted to int
-          case sizeof(uint16_t):  //
-          case sizeof(uint32_t):
-          default:
-            widened = static_cast<uintmax_t>(va_arg(arglist, uint32_t));
-            break;
-        }
-        switch (*(c_++)) {
-          case 'u':
-            outputNumber(widened, false, false, 10);
-            break;
-          case 'o':
-            outputNumber(widened, false, false, 8);
-            break;
-          case 'X':
-            outputNumber(widened, false, true, 16);
-            break;
-          default:  // x, p
-            outputNumber(widened, false, false, 16);
-            break;
-        }
-        break;
-      case 'f':
-        // Decimal floating point, lowercase
-      case 'e':
-        // Scientific notation (mantissa/exponent), lowercase
-      case 'E':
-        // Scientific notation (mantissa/exponent), uppercase
-      case 'g':
-        // Use shortest representation: %e or %f
-      case 'G':
-        // Use shortest representation: %E or %F
-      case 'a':
-        // Hex floating point, lowercase
-      case 'A':
-        // Hex floating point, uppercase
-        c_++;
-        switch (size_) {
-          case sizeof(long double):
-            va_arg(arglist, long double);
-            // Don't do anything: Unsupported
-            break;
-          default:  // double
-            va_arg(arglist, double);
-            // Don't do anything with it; floating point unsupported.
-            break;
-        }
-        outputChars("?");
-        break;
-      case 'c':
-        // Character
-        c_++;
-        switch (size_) {
-          case sizeof(wchar_t): {
-            auto _ = static_cast<wchar_t>(va_arg(arglist, uint32_t));
-            // Don't do anything: Unsupported
-            outputChars("?");
-            break;
-          }
-          default:  // char
-            char c = static_cast<char>(va_arg(arglist, uint32_t));
-            char chrs[2]{c, '\0'};
-            outputChars(chrs);
-            break;
-        }
-        break;
-      case 's':
-        // String of characters
-        c_++;
-        switch (size_) {
-          case sizeof(wchar_t): {
-            auto _ = static_cast<wchar_t>(va_arg(arglist, uint32_t));
-            // Don't do anything: Unsupported
-            outputChars("?");
-            break;
-          }
-          default:  // char
-            const char* str = va_arg(arglist, const char*);
-            outputChars(str);
-            break;
-        }
-        break;
-      case 'n':
-        // Nothing printed.
-        // The corresponding argument must be a pointer to a signed int.
-        // The number of characters written so far is stored in the pointed location.
-        c_++;
-        switch (size_) {
-          case sizeof(int64_t): {
-            auto _ =
-                *va_arg(arglist,
-                        int64_t*);  // = static_cast<int64_t>(charsPrinted_);
-            break;
-          }
-          case sizeof(int8_t): {
-            auto _ = *va_arg(arglist,
-                             int8_t*);  // = static_cast<int8_t>(charsPrinted_);
-            break;
-          }
-          case sizeof(int16_t): {
-            auto _ =
-                *va_arg(arglist,
-                        int16_t*);  // = static_cast<int16_t>(charsPrinted_);
-            break;
-          }
-          case sizeof(int32_t):
-          default: {
-            auto _ =
-                *va_arg(arglist,
-                        int32_t*);  // = static_cast<int32_t>(charsPrinted_);
-            break;
-          }
-        }
-        break;
 
-      case '%':
-        // Escape for %
-        outputChars(c_++);
-        break;
+      switch (*c_) {
+        case 'd':
+        case 'i':
+          // signed decimal integer
+          c_++;
+          switch (size_) {
+            case sizeof(int64_t):
+              widenedSigned = va_arg(arglist, int64_t);
+              break;
+            case sizeof(int8_t):   // automatically promoted to int in varargs
+            case sizeof(int16_t):  //
+            case sizeof(int32_t):
+            default:
+              widenedSigned = static_cast<intmax_t>(va_arg(arglist, int32_t));
+              break;
+          }
+          outputNumber(static_cast<uintmax_t>(widenedSigned), true, false, 10);
+          break;
+        case 'u':
+          // unsigned decimal integer
+        case 'o':
+          // unsigned octal
+        case 'x':
+          // unsigned hexadecimal integer
+        case 'X':
+          // unsigned hexadecimal integer (uppercase)
+        case 'p':
+          // Pointer address
+          switch (size_) {
+            case sizeof(uint64_t):
+              widened = va_arg(arglist, uint64_t);
+              break;
+            case sizeof(uint8_t):   // automatically promoted to int
+            case sizeof(uint16_t):  //
+            case sizeof(uint32_t):
+            default:
+              widened = static_cast<uintmax_t>(va_arg(arglist, uint32_t));
+              break;
+          }
+          switch (*(c_++)) {
+            case 'u':
+              outputNumber(widened, false, false, 10);
+              break;
+            case 'o':
+              outputNumber(widened, false, false, 8);
+              break;
+            case 'X':
+              outputNumber(widened, false, true, 16);
+              break;
+            default:  // x, p
+              outputNumber(widened, false, false, 16);
+              break;
+          }
+          break;
+        case 'f':
+          // Decimal floating point, lowercase
+        case 'e':
+          // Scientific notation (mantissa/exponent), lowercase
+        case 'E':
+          // Scientific notation (mantissa/exponent), uppercase
+        case 'g':
+          // Use shortest representation: %e or %f
+        case 'G':
+          // Use shortest representation: %E or %F
+        case 'a':
+          // Hex floating point, lowercase
+        case 'A':
+          // Hex floating point, uppercase
+          c_++;
+          switch (size_) {
+            case sizeof(long double):
+              va_arg(arglist, long double);
+              // Don't do anything: Unsupported
+              break;
+            default:  // double
+              va_arg(arglist, double);
+              // Don't do anything with it; floating point unsupported.
+              break;
+          }
+          outputChars("?");
+          break;
+        case 'c':
+          // Character
+          c_++;
+          switch (size_) {
+            case sizeof(wchar_t): {
+              auto _ = static_cast<wchar_t>(va_arg(arglist, uint32_t));
+              // Don't do anything: Unsupported
+              outputChars("?");
+              break;
+            }
+            default:  // char
+              char c = static_cast<char>(va_arg(arglist, uint32_t));
+              char chrs[2]{c, '\0'};
+              outputChars(chrs);
+              break;
+          }
+          break;
+        case 's':
+          // String of characters
+          c_++;
+          switch (size_) {
+            case sizeof(wchar_t): {
+              auto _ = static_cast<wchar_t>(va_arg(arglist, uint32_t));
+              // Don't do anything: Unsupported
+              outputChars("?");
+              break;
+            }
+            default:  // char
+              const char* str = va_arg(arglist, const char*);
+              outputChars(str);
+              break;
+          }
+          break;
+        case 'n':
+          // Nothing printed.
+          // The corresponding argument must be a pointer to a signed int.
+          // The number of characters written so far is stored in the pointed location.
+          c_++;
+          switch (size_) {
+            case sizeof(int64_t): {
+              auto _ =
+                  *va_arg(arglist,
+                          int64_t*);  // = static_cast<int64_t>(charsPrinted_);
+              break;
+            }
+            case sizeof(int8_t): {
+              auto _ =
+                  *va_arg(arglist,
+                          int8_t*);  // = static_cast<int8_t>(charsPrinted_);
+              break;
+            }
+            case sizeof(int16_t): {
+              auto _ =
+                  *va_arg(arglist,
+                          int16_t*);  // = static_cast<int16_t>(charsPrinted_);
+              break;
+            }
+            case sizeof(int32_t):
+            default: {
+              auto _ =
+                  *va_arg(arglist,
+                          int32_t*);  // = static_cast<int32_t>(charsPrinted_);
+              break;
+            }
+          }
+          break;
 
-      default:
-        // What do we do here?
-        // Maybe grab and discard the arg
-        va_arg(arglist, int);
-        outputChars("?");
-        break;
+        case '%':
+          // Escape for %
+          outputChars(c_++);
+          break;
+
+        default:
+          // What do we do here?
+          // Maybe grab and discard the arg
+          va_arg(arglist, int);
+          outputChars("?");
+          break;
+      }
     }
   }
 }
@@ -287,7 +294,7 @@ void Formatter::parseLength() const {
       size_ = sizeof(long double);
       break;
     default:
-      size_ = sizeof(unsigned int);
+      size_ = 0;
       break;
   }
 }

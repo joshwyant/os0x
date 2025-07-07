@@ -24,8 +24,7 @@ std::ostream& operator<<(std::ostream& s, rtk::LogLevel lvl) {
 }
 class FakeFormatter : public Formatter {
  public:
-  FakeFormatter() {}
-  string str() const { return stream_.str(); }
+  FakeFormatter(ostream& stream) : stream_{stream} {}
 
  protected:
   size_t outputChars(const char* chars) const override {
@@ -36,7 +35,7 @@ class FakeFormatter : public Formatter {
   }
 
  private:
-  mutable rtk::ostringstream stream_;
+  rtk::ostream& stream_;
 };
 
 class FakeLogger : public Logger {
@@ -46,9 +45,10 @@ class FakeLogger : public Logger {
   const char* contents() { return stream_.str().c_str(); }
   ostream& stream() const override { return stream_; }
   void vlog(const string_view format, va_list argp) const override {
-    FakeFormatter formatter{};
+    FakeFormatter formatter{stream()};
     formatter.vparsef(format.c_str(), argp);
   }
+  void clear() { stream_.str().clear(); }
 
  private:
   mutable ostringstream stream_;
@@ -71,9 +71,16 @@ class LoggingTests {
 
     return 0;
   }
+  static int core_test_log_format() {
+    FakeLogger logger;
+    logger.debug("Hello, %s!", "world");
+    EXPECT_EQUAL(logger.contents(), "Hello, world!");
+    return 0;
+  }
   static void core_logging_tests() {
     TEST(core_test_log_levels);
     TEST(core_test_log_stream);
+    TEST(core_test_log_format);
   }
 
 };  // class LoggingTests
