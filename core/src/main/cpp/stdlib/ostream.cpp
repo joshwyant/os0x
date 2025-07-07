@@ -1,28 +1,8 @@
 #include "core/stdlib/ostream.h"
+#include "core/format.h"
 #include "core/stdlib/string.h"
 
 using namespace rtk;
-
-template <int base = 10, bool upper = false>
-static inline void outdigits(uintmax_t value, int& digits, char*& buffer) {
-  // Add digits in reverse
-  while (value > 0) {
-    const auto rem = value % base;
-    auto& digit = *(--buffer);
-    digits++;
-    if constexpr (base == 16) {
-      constexpr auto alphastart = upper ? 'A' : 'a';
-      digit = rem < 10 ? '0' + rem : alphastart + (rem - 10);
-    } else {
-      digit = '0' + rem;
-    }
-    value /= base;
-  }
-  if (digits == 0) {
-    *(--buffer) = '0';
-    digits++;
-  }
-}
 
 static inline void out(ostream& stream, uintmax_t value,
                        ios_base::fmtflags flags, size_t width, bool isSigned,

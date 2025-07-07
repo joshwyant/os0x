@@ -32,7 +32,7 @@ class Logger {
   virtual ~Logger() noexcept = 0;
   // Implementation free to prefix timestamp, etc.
   virtual void vlog(const string_view format, va_list argp) const = 0;
-  virtual ostream& stream() = 0;
+  virtual ostream& stream() const = 0;
   void log(const string_view format, ...) {
     va_list arglist;
     va_start(arglist, format);

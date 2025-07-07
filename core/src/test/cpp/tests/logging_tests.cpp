@@ -1,7 +1,13 @@
+#include <cstdarg>
 #include <iostream>
+#include "core/format.h"
 #include "core/logging.h"
+#include "core/stdlib/ostream.h"
+#include "core/stdlib/sstream.h"
 #include "test/test.h"
 
+namespace rtk {
+// For test output
 std::ostream& operator<<(std::ostream& s, rtk::LogLevel lvl) {
   switch (lvl) {
 #define X(name, _)                        \
@@ -10,11 +16,43 @@ std::ostream& operator<<(std::ostream& s, rtk::LogLevel lvl) {
     break;
     LOGLEVEL_LIST
 #undef X
+    default:
+      std::cout << "rtk::LogLevel::None";
+      break;
   }
   return s;
 }
+class FakeFormatter : public Formatter {
+ public:
+  FakeFormatter() {}
+  string str() const { return stream_.str(); }
 
-namespace rtk {
+ protected:
+  size_t outputChars(const char* chars) const override {
+    auto chrs = rtk::strlen(chars);
+    stream_.write(chars);
+    //charsPrinted_ += chrs;
+    return chrs;
+  }
+
+ private:
+  mutable rtk::ostringstream stream_;
+};
+
+class FakeLogger : public Logger {
+ public:
+  FakeLogger() : Logger(rtk::LogLevel::Debug) {}
+  FakeLogger(LogLevel level) : Logger(level) {}
+  const char* contents() { return stream_.str().c_str(); }
+  ostream& stream() const override { return stream_; }
+  void vlog(const string_view format, va_list argp) const override {
+    FakeFormatter formatter{};
+    formatter.vparsef(format.c_str(), argp);
+  }
+
+ private:
+  mutable ostringstream stream_;
+};
 class LoggingTests {
  public:
   static int core_test_log_levels() {
@@ -25,7 +63,18 @@ class LoggingTests {
     EXPECT_LESS_THAN(LogLevel::Debug, LogLevel::Trace);
     return 0;
   }
-  static void core_logging_tests() { TEST(core_test_log_levels); }
+  static int core_test_log_stream() {
+    FakeLogger logger;
+    logger.stream() << "Hello, world!" << "\n";
+
+    EXPECT_EQUAL(logger.contents(), "Hello, world!\n");
+
+    return 0;
+  }
+  static void core_logging_tests() {
+    TEST(core_test_log_levels);
+    TEST(core_test_log_stream);
+  }
 
 };  // class LoggingTests
 }  // namespace rtk

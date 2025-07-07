@@ -1,16 +1,25 @@
-#include "stdio.h"
+#include "core/format.h"
 #include <cstdarg>
 #include <cstdint>
-
-// https://cplusplus.com/reference/cstdio/printf/
+using namespace rtk;
 void Formatter::parsef(const char* format, ...) const {
   va_list arglist;
+
+  // This is a varargs wrapper funtion. The va_list variant
+  // does the heavy lifting. Other APIs can create their own
+  // wrappers around vparsef in order to use parsef with
+  // their own varargs functions.
+  va_start(arglist, format);
+  vparsef(format, arglist);
+  va_end(arglist);
+}
+
+// https://cplusplus.com/reference/cstdio/printf/
+void Formatter::vparsef(const char* format, va_list arglist) const {
   format_ = format;
   c_ = format;
   uintmax_t widened;
   intmax_t widenedSigned;
-
-  va_start(arglist, format);
 
   while (*c_) {
     if (*c_ == '%') {
@@ -38,7 +47,7 @@ void Formatter::parsef(const char* format, ...) const {
             widenedSigned = static_cast<intmax_t>(va_arg(arglist, int32_t));
             break;
         }
-        outputInteger(static_cast<uintmax_t>(widenedSigned), true);
+        outputNumber(static_cast<uintmax_t>(widenedSigned), true, false, 10);
         break;
       case 'u':
         // unsigned decimal integer
@@ -63,17 +72,16 @@ void Formatter::parsef(const char* format, ...) const {
         }
         switch (*(c_++)) {
           case 'u':
-            outputInteger(widened, false);
+            outputNumber(widened, false, false, 10);
             break;
           case 'o':
-            // Probably unsupported, fn will probably output a `?`
-            outputOctal(widened);
+            outputNumber(widened, false, false, 8);
             break;
           case 'X':
-            outputHex(widened, true);
+            outputNumber(widened, false, true, 16);
             break;
           default:  // x, p
-            outputHex(widened, false);
+            outputNumber(widened, false, false, 16);
             break;
         }
         break;
@@ -102,20 +110,22 @@ void Formatter::parsef(const char* format, ...) const {
             // Don't do anything with it; floating point unsupported.
             break;
         }
-        outputChars("?", 1);
+        outputChars("?");
         break;
       case 'c':
         // Character
         c_++;
         switch (size_) {
-          case sizeof(wchar_t):
-            va_arg(arglist, wchar_t);
+          case sizeof(wchar_t): {
+            auto _ = static_cast<wchar_t>(va_arg(arglist, uint32_t));
             // Don't do anything: Unsupported
-            outputChars("?", 1);
+            outputChars("?");
             break;
+          }
           default:  // char
-            char c = va_arg(arglist, char);
-            outputChars(&c, 1);
+            char c = static_cast<char>(va_arg(arglist, uint32_t));
+            char chrs[2]{c, '\0'};
+            outputChars(chrs);
             break;
         }
         break;
@@ -123,11 +133,12 @@ void Formatter::parsef(const char* format, ...) const {
         // String of characters
         c_++;
         switch (size_) {
-          case sizeof(wchar_t):
-            va_arg(arglist, wchar_t);
+          case sizeof(wchar_t): {
+            auto _ = static_cast<wchar_t>(va_arg(arglist, uint32_t));
             // Don't do anything: Unsupported
-            outputChars("?", 1);
+            outputChars("?");
             break;
+          }
           default:  // char
             const char* str = va_arg(arglist, const char*);
             outputChars(str);
@@ -140,37 +151,46 @@ void Formatter::parsef(const char* format, ...) const {
         // The number of characters written so far is stored in the pointed location.
         c_++;
         switch (size_) {
-          case sizeof(int64_t):
-            *va_arg(arglist, int64_t*) = static_cast<int64_t>(charsPrinted_);
+          case sizeof(int64_t): {
+            auto _ =
+                *va_arg(arglist,
+                        int64_t*);  // = static_cast<int64_t>(charsPrinted_);
             break;
-          case sizeof(int8_t):
-            *va_arg(arglist, int8_t*) = static_cast<int8_t>(charsPrinted_);
+          }
+          case sizeof(int8_t): {
+            auto _ = *va_arg(arglist,
+                             int8_t*);  // = static_cast<int8_t>(charsPrinted_);
             break;
-          case sizeof(int16_t):
-            *va_arg(arglist, int16_t*) = static_cast<int16_t>(charsPrinted_);
+          }
+          case sizeof(int16_t): {
+            auto _ =
+                *va_arg(arglist,
+                        int16_t*);  // = static_cast<int16_t>(charsPrinted_);
             break;
+          }
           case sizeof(int32_t):
-          default:
-            *va_arg(arglist, int32_t*) = static_cast<int32_t>(charsPrinted_);
+          default: {
+            auto _ =
+                *va_arg(arglist,
+                        int32_t*);  // = static_cast<int32_t>(charsPrinted_);
             break;
+          }
         }
         break;
 
       case '%':
         // Escape for %
-        outputChars(c_++, 1);
+        outputChars(c_++);
         break;
 
       default:
         // What do we do here?
         // Maybe grab and discard the arg
         va_arg(arglist, int);
-        outputChars("?", 1);
+        outputChars("?");
         break;
     }
   }
-
-  va_end(arglist);
 }
 
 void Formatter::parseFlags() const {
@@ -272,4 +292,73 @@ void Formatter::parseLength() const {
   }
 }
 
-void StringFormatter::outputChars(const char* chars, size_t length) const {}
+void Formatter::outputNumber(uintmax_t val, bool isSigned, bool upper,
+                             int base) const {
+
+  constexpr auto buffer_chrs = 20;
+  char buffer[buffer_chrs + 1]{};
+  char* str = buffer + buffer_chrs;
+  int digits = 0;
+  auto fillch = hasFlag(FormatFlags::Zero) ? "0" : " ";
+
+  // Get the positive value of the number
+  // and also track if signs add to the width
+  intmax_t negative;
+  auto positive = val;
+  if (isSigned && (base == 10)) {
+    negative = static_cast<intmax_t>(val);
+    positive = static_cast<uintmax_t>(-negative);
+  }
+
+  // Get the string for the number portion
+  if (base == 16) {
+    if (upper) {
+      outdigits<16, true>(val, digits, str);
+    } else {
+      outdigits<16, false>(val, digits, str);
+    }
+  } else if (base == 8) {
+    outdigits<8>(val, digits, str);
+  } else {
+    outdigits<10>(positive, digits, str);
+  }
+  // Print the sign
+  if (isSigned && (base == 10)) {
+    if (negative < 0) {
+      digits++;
+      outputChars("-");
+    } else if (hasFlag(FormatFlags::PlusPrefix)) {
+      digits++;
+      outputChars("+");
+    } else if (hasFlag(FormatFlags::Space)) {
+      digits++;
+      outputChars(" ");
+    }
+  }
+  // Count and print prefix
+  if (hasFlag(FormatFlags::Hash)) {
+    if (base == 8 && val == 0) {
+      digits++;
+      outputChars("0");
+    } else if (base == 16) {
+      digits += 2;
+      outputChars(upper ? "0X" : "0x");
+    }
+  }
+  // Left fill
+  if (!hasFlag(FormatFlags::LeftJustify)) {
+    while (digits < width_) {
+      outputChars(fillch);
+      digits++;
+    }
+  }
+  // Print the number buffer
+  outputChars(str);
+  // right fill
+  while (digits < width_) {
+    outputChars(fillch);
+    digits++;
+  }
+}
+
+// void StringFormatter::outputChars(const char* chars, size_t length) const {}
