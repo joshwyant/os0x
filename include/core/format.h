@@ -53,12 +53,12 @@ class Formatter {
   void parseLength() const;
   void outputNumber(uintmax_t val, bool isSigned, bool upper, int base) const;
   enum class FormatFlags {
-    None,
-    LeftJustify,
-    PlusPrefix,
-    Space,
-    Hash,
-    Zero,
+    None = 0,
+    LeftJustify = 1,
+    PlusPrefix = 1 << 1,
+    Space = 1 << 2,
+    Hash = 1 << 3,
+    Zero = 1 << 4,
   };
   friend FormatFlags& operator|=(FormatFlags& a, FormatFlags b) {
     a = static_cast<FormatFlags>(static_cast<int>(a) | static_cast<int>(b));

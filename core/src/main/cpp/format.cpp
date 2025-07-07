@@ -236,12 +236,12 @@ int Formatter::parseWidth() const {
     return -1;  // get from vararg instead
   }
 
-  auto width = 0;
+  width_ = 0;
   while (*c_ >= '0' && *c_ <= '9') {
-    width = width * 10 + (*c_ - '0');
+    width_ = width_ * 10 + (*c_ - '0');
     c_++;
   }
-  return width;
+  return width_;
 }
 
 void Formatter::parsePrecision() const {

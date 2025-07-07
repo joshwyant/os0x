@@ -79,6 +79,22 @@ class LoggingTests {
     logger.clear();
     logger.debug("Number %d", 100);
     EXPECT_EQUAL(logger.contents(), "Number 100");
+
+    logger.clear();
+    logger.debug("Number %#010x!", 100);
+    EXPECT_EQUAL(logger.contents(), "Number 0x00000064!");
+
+    logger.clear();
+    logger.debug("%llp", 0x987654321abcdef0ULL);
+    EXPECT_EQUAL(logger.contents(), "987654321abcdef0");
+
+    logger.clear();
+    logger.debug("%p", 0x987654321abcdef0ULL);
+    EXPECT_EQUAL(logger.contents(), "1abcdef0");
+
+    logger.clear();
+    logger.debug("%lp", 0x987654321abcdef0ULL);
+    EXPECT_EQUAL(logger.contents(), "987654321abcdef0");
     return 0;
   }
   static void core_logging_tests() {
