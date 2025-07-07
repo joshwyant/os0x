@@ -75,6 +75,10 @@ class LoggingTests {
     FakeLogger logger;
     logger.debug("Hello, %s!", "world");
     EXPECT_EQUAL(logger.contents(), "Hello, world!");
+
+    logger.clear();
+    logger.debug("Number %d", 100);
+    EXPECT_EQUAL(logger.contents(), "Number 100");
     return 0;
   }
   static void core_logging_tests() {

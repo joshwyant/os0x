@@ -314,7 +314,9 @@ void Formatter::outputNumber(uintmax_t val, bool isSigned, bool upper,
   auto positive = val;
   if (isSigned && (base == 10)) {
     negative = static_cast<intmax_t>(val);
-    positive = static_cast<uintmax_t>(-negative);
+    if (negative < 0) {
+      positive = static_cast<uintmax_t>(-negative);
+    }
   }
 
   // Get the string for the number portion
