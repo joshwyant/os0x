@@ -357,7 +357,7 @@ class RecursivePageTables final : public PageTables {
     //  or,
     //   1. tableAddr = tablesStart_ | ((vaddr >> (9 * level)) | (0x7FFFFFF000 << 9*(4-level))) & 0x7FFFFFF000
     return tablesStart_ | ((vaddr >> (9 * (int)level)) |
-                           (0x7FFFFFF000 << 9 * (4 - (int)level))) &
+                           (0x7FFFFFF000 << (9 * (4 - (int)level)))) &
                               0x7FFFFFF000;
   }
   void mapNoTables(uintptr_t virtAddr, uintptr_t physAddr,

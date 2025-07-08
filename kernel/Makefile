@@ -1,7 +1,7 @@
 .PHONY: all clean rebuild
 
 ARCH := amd64
-PROJ_ROOT_DIR := ../../../..
+PROJ_ROOT_DIR := ..
 PACKAGES_SRC := $(PROJ_ROOT_DIR)/packages
 EFI_SHIM_SRC := $(PACKAGES_SRC)/efi_shim/src/main/cpp
 EFI_SHIM_SOURCES := $(EFI_SHIM_SRC)/%.cpp
@@ -14,6 +14,7 @@ CORE_OBJS := obj/core/format.o \
 	obj/core/logging.o \
 	obj/core/status.o \
 	obj/core/stdlib/ostream.o
+KERNEL_SRC := src/main/cpp
 KERNEL_TARGET := x86_64-unknown-elf
 KERNEL_AS := x86_64-linux-gnu-gcc
 KERNEL_LD := x86_64-linux-gnu-ld
@@ -28,14 +29,14 @@ KERNEL_OBJS := 	obj/start.o \
 				obj/lib/cpp/new.o \
 				obj/packages/efi_shim/uefi.o
 KERNEL_DEFINES := 
-KERNEL_CFLAGS := -target $(KERNEL_TARGET) -ffreestanding -fno-exceptions -fno-rtti -nostdlib -fno-builtin -fno-pic -mcmodel=large -c -MMD -MP
+KERNEL_CFLAGS := -target $(KERNEL_TARGET) -ffreestanding -fno-exceptions -fno-rtti -nostdlib -fno-builtin -fno-pic -mcmodel=large -g -c -MMD -MP
 KERNEL_ASFLAGS := -ffreestanding -m64 -c -MMD -MP
-KERNEL_ROOT_DIR := ../../..
+KERNEL_ROOT_DIR := .
 KERNEL_INCLUDE := $(INCLUDES) $(EFI_INCLUDES) -I$(KERNEL_ROOT_DIR)/include -I$(KERNEL_ROOT_DIR)/include/arch/amd64
 KERNEL_CC_INVOKE := $(KERNEL_CC) $(KERNEL_CFLAGS) $(KERNEL_DEFINES) $(KERNEL_INCLUDE)
-KERNEL_CPP_SOURCES := %.cpp 
-KERNEL_C_SOURCES := %.c
-KERNEL_ASM_SOURCES := arch/$(ARCH)/%.S
+KERNEL_CPP_SOURCES := $(KERNEL_SRC)/%.cpp 
+KERNEL_C_SOURCES := $(KERNEL_SRC)/%.c
+KERNEL_ASM_SOURCES := $(KERNEL_SRC)/arch/$(ARCH)/%.S
 
 all: bin/kernel.elf
 

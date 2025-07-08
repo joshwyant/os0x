@@ -11,13 +11,14 @@ QEMU_FLAGS := -m $(MEM_SIZE) \
 		-drive file=$(DISK_IMAGE),format=raw,if=virtio \
 		-echr 0x14 -nographic \
 		-vnc :1,password=off \
+		-s -S
 		#-d int --no-reboot
 EFI_BIN_FNAME := BOOTX64.EFI
-EFI_SRC := efi/src/main/cpp
-EFI_BIN := $(EFI_SRC)/bin
-KERNEL_SRC := kernel/src/main/cpp
-KERNEL_BIN := $(KERNEL_SRC)/bin
-KERNEL_OBJ := $(KERNEL_SRC)/obj
+EFI_BASE := ./efi
+EFI_BIN := $(EFI_BASE)/bin
+KERNEL_BASE := ./kernel
+KERNEL_BIN := $(KERNEL_BASE)/bin
+KERNEL_OBJ := $(KERNEL_BASE)/obj
 INITRD_SRC := $(KERNEL_OBJ)/initrd
 INITRD_FILES := $(KERNEL_BIN)/kernel.elf
 
@@ -57,13 +58,13 @@ $(EFI_BIN)/$(INITRD_IMG_FNAME): $(INITRD_FILES)
 #	gzip -f $(EFI_BIN)/$(INITRD_IMG_FNAME)
 
 $(KERNEL_BIN)/kernel.elf:
-	cd $(KERNEL_SRC) && make
+	cd $(KERNEL_BASE) && make
 
 $(EFI_BIN)/$(EFI_BIN_FNAME):
-	cd $(EFI_SRC) && make
+	cd $(EFI_BASE) && make
 
 clean:
-	cd $(KERNEL_SRC) && make clean
-	cd $(EFI_SRC) && make clean
+	cd $(KERNEL_BASE) && make clean
+	cd $(EFI_BASE) && make clean
 	$(RM) $(DISK_IMAGE)
 	$(RM) $(INITRD_SRC)

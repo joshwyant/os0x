@@ -49,6 +49,32 @@
             }
         },
         {
+            "label": "Build everything",
+            "type": "shell",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "command": [
+                "make all"
+            ],
+            "dependsOn": [],
+            "problemMatcher": {
+                "pattern": [
+                    {
+                        "regexp": ".",
+                        "file": 1,
+                        "location": 2,
+                        "message": 3
+                    }
+                ],
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".",
+                    "endsPattern": ".",
+                }
+            }
+        },
+        {
             "label": "Rebuild Core Test",
             "type": "shell",
             "options": {

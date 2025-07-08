@@ -5,6 +5,32 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "type": "gdb",
+            "request": "attach",
+            "name": "Attach to kernel gdbserver",
+            "executable": "./bin/kernel.elf",
+            "target": ":1234",
+            "remote": true,
+            "gdbpath": "gdb-multiarch",
+            "cwd": "${workspaceRoot}/kernel",
+            // "stopAtConnect": true,
+            "valuesFormatting": "parseText",
+            // "preLaunchTask": "Build everything",
+        },
+        {
+            "type": "gdb",
+            "request": "attach",
+            "name": "Attach to EFI gdbserver",
+            "executable": "./bin/BOOTX64.EFI.debug",
+            "target": ":1234",
+            "remote": true,
+            "gdbpath": "gdb-multiarch",
+            "cwd": "${workspaceRoot}/efi",
+            // "stopAtConnect": true,
+            "valuesFormatting": "parseText",
+            "autorun": []
+        },
+        {
             "name": "(gdb) Test core",
             "type": "cppdbg",
             "request": "launch",

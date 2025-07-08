@@ -46,6 +46,9 @@ EFI_STATUS load_kernel(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable,
 
   UINTN mapKey;
   TraceLine("Getting system memory map and calling the kernel...");
+
+  logLevel = ErrorLevel;  // prevent more printfs corrupting the memmap
+
   TRYWRAPFNS(get_memmap(SystemTable, &bi->memory_map, &mapKey),
              "Failed to get memory map");
 
@@ -570,13 +573,12 @@ EFI_STATUS create_page_tables(
 
   TraceLine("Cleared the page table.");
 
-  // Map it in(to itself)
+  // Map it into itself)
   TraceLine("Mapping the page table into itself...");
-  // This is redundant if we could just set the entry manually
-  TRYWRAPFN(map_page(PT_L4_BASE, (page_physical_address_t)pageTable,
-                     PageAttributes::PAGE_PRESENT |
-                         PageAttributes::PAGE_RW /*| PageAttributes::PAGE_NX*/,
-                     pageTable));
+  auto entries = (page_table_entry_physical_ptr_t)(pageTable);
+  entries[511] = (page_table_physical_address_t)pageTable & PAGE_ADDR_MASK |
+                 static_cast<uint64_t>(PageAttributes::PAGE_PRESENT |
+                                       PageAttributes::PAGE_RW);
   TraceLine("Page tables created.");
 
   return EFI_SUCCESS;

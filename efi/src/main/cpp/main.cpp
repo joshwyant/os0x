@@ -7,13 +7,41 @@ enum BootLogLevel logLevel = TraceLevel;
 enum BootLogLevel logLevel = TraceLevel;
 #endif
 
+// https://wiki.osdev.org/Debugging_UEFI_applications_with_GDB
+// Write a token to 0x10000 to watch in GDB, to find the base
+// pointer where EFI loaded us.
+// Start Qemu with -s -S, open gdb with:
+//   (gdb) watch *(unsigned long long*)0x10000 == 0xDEADBEEF
+//   (gdb) continue
+//   (gdb) set $base = *(unsigned long long*)0x10008
+//   (gdb) add-symbol-file efi/src/main/cpp/bin/BOOTX64.EFI.debug -o $base
+//   (gdb) continue
+// See .gdbinit
+// May have to source manually
+// The first "exception" is just the watch being caught
+void write_debug_sentinel(EFI_LOADED_IMAGE* LoadedImage) {
+  // Write image base and marker for GDB
+  volatile uint64_t* marker_ptr = (uint64_t*)0x10000;
+  volatile uint64_t* image_base_ptr = (uint64_t*)0x10008;
+  *image_base_ptr = (uint64_t)LoadedImage->ImageBase;  // Store ImageBase
+  *marker_ptr = 0xDEADBEEF;                            // Set marker
+}
+
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle,
                            EFI_SYSTEM_TABLE* SystemTable) {
   // disable_lapic();
   EFI_STATUS status;
   graphics_info_t gi;
+  EFI_LOADED_IMAGE* LoadedImage;
 
   InitializeLib(ImageHandle, SystemTable);
+
+  // Get the loaded image protocol from the image handle
+  TRYWRAPS(((void*)BS->HandleProtocol, 3, ImageHandle, &LoadedImageProtocol,
+            (void**)&LoadedImage),
+           "Failed to get LoadedImageProtocol");
+
+  write_debug_sentinel(LoadedImage);
 
   TRYWRAP(((void*)SystemTable->ConOut->ClearScreen, 1, SystemTable->ConOut));
   TRYWRAPFNS(get_graphics_info(SystemTable, &gi),
@@ -33,6 +61,9 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle,
 
   LogLine0(Debug);
   DebugLine("Press C-t x in the terminal to exit Qemu monitor.");
+
+  LogLine0(Debug);
+  DebugLine("Image loaded at: 0x%llp", LoadedImage->ImageBase);
 
   LogLine0(Info);
   InfoLine("Loading initrd.img...");
