@@ -1,7 +1,6 @@
 #pragma once
 
-#include <cstdint>
-#include <iostream>
+#include <stdint.h>
 #include "core/stdlib/ios.h"
 #include "core/stdlib/string.h"
 #include "core/stdlib/string_view.h"

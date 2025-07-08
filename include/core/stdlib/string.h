@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstddef>
+#include <stddef.h>
 #include "core/stdlib/cstring.h"
 #include "core/stdlib/freestanding/new.h"  // placement new
 #include "core/stdlib/memory.h"

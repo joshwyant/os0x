@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstddef>
+#include <stddef.h>
 
 namespace rtk {
 static constexpr size_t strlen(const char* str) {

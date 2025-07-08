@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstddef>
-#include <cstdint>
+#include <stddef.h>
+#include <stdint.h>
 
 #include "core/status.h"
 #include "kernel/paging.h"
@@ -75,4 +75,4 @@ class KernelBootstrapper {
 }  // namespace k
 
 // in main.cpp
-k::StatusCode kernel_main(const k::KernelContext&);
+rtk::StatusCode kernel_main(const k::KernelContext&);

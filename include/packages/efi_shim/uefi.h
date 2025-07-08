@@ -16,9 +16,9 @@ class UefiBootstrapPhysicalMemoryAllocator final
   UefiBootstrapPhysicalMemoryAllocator(UefiMemoryBootstrapper& parent)
       : parent_{parent} {};
 
-  k::StatusCode allocatePage(uintptr_t* newPhysicalAddressOut) const override;
-  k::StatusCode allocatePages(size_t count, uintptr_t* newPhysicalAddressOut,
-                              size_t* pagesAllocated) const override;
+  rtk::StatusCode allocatePage(uintptr_t* newPhysicalAddressOut) const override;
+  rtk::StatusCode allocatePages(size_t count, uintptr_t* newPhysicalAddressOut,
+                                size_t* pagesAllocated) const override;
   size_t memorySize() const override;
 
  private:
@@ -60,8 +60,8 @@ class UefiMemoryBootstrapper final : public k::MemoryBootstrapper {
   uintptr_t mappedVirtualMemoryEnd() const override {
     return nextFreeVirtualPage_;
   }
-  k::StatusCode reserveVirtualMemory(size_t pageCount,
-                                     uintptr_t* newAddr) override;
+  rtk::StatusCode reserveVirtualMemory(size_t pageCount,
+                                       uintptr_t* newAddr) override;
   const k::KernelMemoryLayout& layout() const override { return layout_; }
 
  private:

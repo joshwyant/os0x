@@ -1,7 +1,7 @@
 #include <efi.h>
 #include "kernel.h"
 
-#include "kernel/init/uefi.h"
+#include "packages/efi_shim/uefi.h"
 
 using namespace k;
 
@@ -25,8 +25,8 @@ extern "C" void kernel_boot_uefi(const boot_info_t* bootInfo) {
     freeze();
 
   constexpr auto kCatpuccinMochaMantleColor = 0x00181825;
-  clear_screen(bootInfo,
-               kCatpuccinMochaMantleColor);  // catppuccin mocha mantle
+  // clear_screen(bootInfo,
+  //              kCatpuccinMochaMantleColor);  // catppuccin mocha mantle
 
   // Create a bootstrapper used to initialize the kernel with UEFI-specific data
   // Let it go out of scope for final bootstrapper cleanup of memory
@@ -39,7 +39,7 @@ extern "C" void kernel_boot_uefi(const boot_info_t* bootInfo) {
   }
 
   // Call kernel_main
-  StatusCode status = kernel_main(*kernelContext);
+  rtk::StatusCode status = kernel_main(*kernelContext);
 
   // Loop forever
   freeze();
@@ -65,25 +65,25 @@ UefiMemoryBootstrapper::processFreePhysicalMemoryPages() {
   return MemoryRange{physicalMemoryRange_};
 }
 
-StatusCode UefiMemoryBootstrapper::reserveVirtualMemory(size_t pageCount,
-                                                        uintptr_t* newAddr) {
+rtk::StatusCode UefiMemoryBootstrapper::reserveVirtualMemory(
+    size_t pageCount, uintptr_t* newAddr) {
   if (nextFreeVirtualPage_ + pageCount * kPageSize > layout_.memoryMapsEnd()) {
-    return StatusCode::OutOfMemory;
+    return rtk::StatusCode::OutOfMemory;
   }
 
   *newAddr = nextFreeVirtualPage_;
   nextFreeVirtualPage_ += pageCount * EFI_PAGE_SIZE;
 
-  return StatusCode::Ok;
+  return rtk::StatusCode::Ok;
 }
 
-StatusCode UefiBootstrapPhysicalMemoryAllocator::allocatePage(
+rtk::StatusCode UefiBootstrapPhysicalMemoryAllocator::allocatePage(
     uintptr_t* newPhysicalAddressOut) const {
   size_t pagesAllocated;  // discard
   return allocatePages(1, newPhysicalAddressOut, &pagesAllocated);
 }
 
-StatusCode UefiBootstrapPhysicalMemoryAllocator::allocatePages(
+rtk::StatusCode UefiBootstrapPhysicalMemoryAllocator::allocatePages(
     size_t count, uintptr_t* newPhysicalAddressOut,
     size_t* pagesAllocated) const {
   *newPhysicalAddressOut = 0;
@@ -98,11 +98,11 @@ StatusCode UefiBootstrapPhysicalMemoryAllocator::allocatePages(
       *pagesAllocated = count < d.NumberOfPages ? count : d.NumberOfPages;
       d.NumberOfPages -= *pagesAllocated;
       d.PhysicalStart += *pagesAllocated * EFI_PAGE_SIZE;
-      return StatusCode::Ok;
+      return rtk::StatusCode::Ok;
     }
   }
 
-  return StatusCode::OutOfMemory;
+  return rtk::StatusCode::OutOfMemory;
 }
 
 bool UefiMemoryBootstrapper::UefiFreePhysicalMemoryRange::move_next() {

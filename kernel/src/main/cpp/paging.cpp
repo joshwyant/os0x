@@ -1,4 +1,5 @@
 #include "core/stdlib/freestanding/stdint.h"
+#include "core/stdlib/freestanding/string.h"
 #include "kernel.h"
 
 using namespace k;
@@ -13,10 +14,10 @@ constexpr auto kByteMaskRightmostBitSet = (uint8_t)1;
 uint8_t makeSetBitsMask(size_t& currentPage, size_t endPage);
 uint8_t makeUnsetBitsMask(size_t& currentPage, size_t endPage);
 
-#define CHECK_INIT_STATUS()                      \
-  do {                                           \
-    if (initializationStatus_ != StatusCode::Ok) \
-      return StatusCode::InitializationError;    \
+#define CHECK_INIT_STATUS()                           \
+  do {                                                \
+    if (initializationStatus_ != rtk::StatusCode::Ok) \
+      return rtk::StatusCode::InitializationError;    \
   } while (0)
 
 RecursivePageTables::RecursivePageTables(
@@ -31,9 +32,9 @@ RecursivePageTables::RecursivePageTables(
       pallocator_{pallocator},
       vallocator_{vallocator} {}
 
-StatusCode RecursivePageTables::map(uintptr_t virtAddr, uintptr_t physAddr,
-                                    PageAttr attributes) const {
-  StatusCode status;
+rtk::StatusCode RecursivePageTables::map(uintptr_t virtAddr, uintptr_t physAddr,
+                                         PageAttr attributes) const {
+  rtk::StatusCode status;
   const volatile PageTable* table = &pml4_;
 
   // Recurse page tables and make sure they exist; find the final page table
@@ -71,7 +72,7 @@ StatusCode RecursivePageTables::map(uintptr_t virtAddr, uintptr_t physAddr,
   // Set the new entry in the lowest page table (calls invlpg)
   mapNoTables(virtAddr, physAddr, attributes);
 
-  return StatusCode::Ok;
+  return rtk::StatusCode::Ok;
 }
 
 uint8_t makeSetBitsMask(size_t& currentPage, size_t endPage) {
@@ -101,7 +102,7 @@ void DefaultPhysicalMemoryAllocator::init(
   // Reserve our virtual memory space
   status = bootstrapper.reserveVirtualMemory(
       pagesNeeded, reinterpret_cast<uintptr_t*>(&bitmap_));
-  if (status != StatusCode::Ok)  // out of mem?
+  if (status != rtk::StatusCode::Ok)  // out of mem?
     return;
 
   const auto bitmapStart = reinterpret_cast<uintptr_t>(bitmap_);
@@ -115,7 +116,7 @@ void DefaultPhysicalMemoryAllocator::init(
     size_t pagesAllocated;
     status = kernel->pageAllocator().allocatePages(
         pagesNeeded, &physicalAddress, &pagesAllocated);
-    if (status != StatusCode::Ok)
+    if (status != rtk::StatusCode::Ok)
       return;  // out of physical mem?
 
     const auto bytesAllocated = pagesAllocated * kPageSize;
@@ -123,12 +124,12 @@ void DefaultPhysicalMemoryAllocator::init(
     // Map them to virtual memory
     status = kernel->pageTables().map(currentPage, physicalAddress,
                                       PageAttr::Present | PageAttr::RW);
-    if (status != StatusCode::Ok)  // out of mem creating tables?
+    if (status != rtk::StatusCode::Ok)  // out of mem creating tables?
       return;
 
     // Clear the page (all 1's for "used" by default)
-    memset(reinterpret_cast<void*>(currentPage), kByteMaskAllBitsSet,
-           kPageSize);
+    rtk::memset(reinterpret_cast<void*>(currentPage), kByteMaskAllBitsSet,
+                kPageSize);
 
     // Advance
     currentPage += bytesAllocated;
@@ -169,7 +170,7 @@ DefaultPhysicalMemoryAllocator::DefaultPhysicalMemoryAllocator(
     : memorySize_(memoryBootstrapper.memorySize()),
       lowestFreePage_(UINTPTR_MAX) {}
 
-StatusCode DefaultPhysicalMemoryAllocator::allocatePage(
+rtk::StatusCode DefaultPhysicalMemoryAllocator::allocatePage(
     uintptr_t* newPhyiscalAddressOut) const {
   size_t pagesAllocated;  // discard
   return allocatePages(1, newPhyiscalAddressOut, &pagesAllocated);
@@ -205,13 +206,13 @@ bool DefaultPhysicalMemoryAllocator::alignedFreeCheckAdvanceAndMark(
   return isFree;
 }
 
-StatusCode DefaultPhysicalMemoryAllocator::allocatePages(
+rtk::StatusCode DefaultPhysicalMemoryAllocator::allocatePages(
     size_t count, uintptr_t* newPhyiscalAddressOut,
     size_t* pagesAllocated) const {
   CHECK_INIT_STATUS();
 
   if (count == 0) {
-    return StatusCode::OutOfRange;
+    return rtk::StatusCode::OutOfRange;
   }
 
   const auto startPage = lowestFreePage_;
@@ -281,19 +282,19 @@ StatusCode DefaultPhysicalMemoryAllocator::allocatePages(
 
   if (*pagesAllocated == 0) {
     lowestFreePage_ = bitmapPages;  // literally no lowest free page
-    return StatusCode::OutOfMemory;
+    return rtk::StatusCode::OutOfMemory;
   }
 
   *newPhyiscalAddressOut = startPage * kPageSize;
-  return StatusCode::Ok;
+  return rtk::StatusCode::Ok;
 }
 
-StatusCode DefaultVirtualMemoryAllocator::allocatePage(
+rtk::StatusCode DefaultVirtualMemoryAllocator::allocatePage(
     uintptr_t* newVirtualAddressOut) const {
-  return StatusCode::NotImplemented;
+  return rtk::StatusCode::NotImplemented;
 }
 
-StatusCode DefaultVirtualMemoryAllocator::allocatePages(
+rtk::StatusCode DefaultVirtualMemoryAllocator::allocatePages(
     size_t count, uintptr_t* newVirtualAddressOut) const {
-  return StatusCode::NotImplemented;
+  return rtk::StatusCode::NotImplemented;
 }

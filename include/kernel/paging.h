@@ -1,6 +1,7 @@
 #pragma once
-#include <cstddef>
-#include <cstdint>
+#include <stddef.h>
+#include <stdint.h>
+#include "asm.h"
 #include "core/status.h"
 #include "core/stdlib/freestanding/string.h"
 #include "core/stdlib/utility.h"
@@ -221,7 +222,7 @@ class __attribute__((aligned(8))) __attribute__((packed)) PageEntry {
   void clearNx() volatile { setNx(false); }
 
   friend void swap(volatile PageEntry& a, volatile PageEntry& b) {
-    using k::swap;
+    using rtk::swap;
     swap(a.value_, b.value_);
   }
 
@@ -272,25 +273,26 @@ inline PageLevel operator--(PageLevel& level, int)  // postfix
 
 class __attribute__((aligned(4096))) __attribute__((packed)) PageTable {
  public:
-  StatusCode getEntry(size_t index, volatile PageEntry& out) const volatile {
+  rtk::StatusCode getEntry(size_t index, volatile PageEntry& out) const
+      volatile {
     if (index >= kNumEntries) {
       out = {};
-      return StatusCode::OutOfBounds;
+      return rtk::StatusCode::OutOfBounds;
     }
 
     out = entries_[index];
-    return StatusCode::Ok;
+    return rtk::StatusCode::Ok;
   }
-  StatusCode setEntry(size_t index, PageEntry in) volatile {
+  rtk::StatusCode setEntry(size_t index, PageEntry in) volatile {
     if (index >= kNumEntries) {
-      return StatusCode::OutOfBounds;
+      return rtk::StatusCode::OutOfBounds;
     }
 
     entries_[index] = in;
 
-    return StatusCode::Ok;
+    return rtk::StatusCode::Ok;
   }
-  void clear() volatile { memset((void*)this, 0, sizeof(*this)); }
+  void clear() volatile { rtk::memset((void*)this, 0, sizeof(*this)); }
 
  private:
   static constexpr int kNumEntries = kPageSize / sizeof(PageEntry);
@@ -306,8 +308,8 @@ class PageTables {
 
   const PageTable& root() { return pml4_; }
 
-  virtual StatusCode map(uintptr_t vaddr, uintptr_t paddr,
-                         PageAttr attributes) const = 0;
+  virtual rtk::StatusCode map(uintptr_t vaddr, uintptr_t paddr,
+                              PageAttr attributes) const = 0;
 
  protected:
   PageTables(uintptr_t pgtablePaddr, uintptr_t pgtableVaddr)
@@ -323,8 +325,8 @@ class RecursivePageTables final : public PageTables {
                       const VirtualMemoryAllocator& vallocator,
                       const MemoryBootstrapper& memoryBootstrapper);
 
-  StatusCode map(uintptr_t virtAddr, uintptr_t physAddr,
-                 PageAttr attributes) const override;
+  rtk::StatusCode map(uintptr_t virtAddr, uintptr_t physAddr,
+                      PageAttr attributes) const override;
 
  private:
   const uintptr_t tablesStart_;
@@ -379,10 +381,11 @@ class PhysicalMemoryAllocator {
       delete;
   PhysicalMemoryAllocator& operator=(PhysicalMemoryAllocator&& other) = delete;
 
-  virtual StatusCode allocatePage(uintptr_t* newPhysicalAddressOut) const = 0;
-  virtual StatusCode allocatePages(size_t count,
-                                   uintptr_t* newPhysicalAddressOut,
-                                   size_t* pagesAllocated) const = 0;
+  virtual rtk::StatusCode allocatePage(
+      uintptr_t* newPhysicalAddressOut) const = 0;
+  virtual rtk::StatusCode allocatePages(size_t count,
+                                        uintptr_t* newPhysicalAddressOut,
+                                        size_t* pagesAllocated) const = 0;
   virtual size_t memorySize() const = 0;
 
  protected:
@@ -394,20 +397,21 @@ class PhysicalMemoryAllocator {
 class DefaultPhysicalMemoryAllocator final : public PhysicalMemoryAllocator {
  public:
   DefaultPhysicalMemoryAllocator(MemoryBootstrapper& memoryBootstrapper);
-  StatusCode allocatePage(uintptr_t* newPhysicalAddressOut) const override;
-  StatusCode allocatePages(size_t count, uintptr_t* newPhysicalAddressOut,
-                           size_t* pagesAllocated) const override;
+  rtk::StatusCode allocatePage(uintptr_t* newPhysicalAddressOut) const override;
+  rtk::StatusCode allocatePages(size_t count, uintptr_t* newPhysicalAddressOut,
+                                size_t* pagesAllocated) const override;
   void init(const KernelContext* kernel,
             MemoryBootstrapper& memoryBootstrapper) const;
   size_t memorySize() const override { return memorySize_; }
-  StatusCode initializationStatus() { return initializationStatus_; }
+  rtk::StatusCode initializationStatus() { return initializationStatus_; }
 
  private:
   const size_t memorySize_;
   mutable size_t bitmapSize_;
   mutable uint8_t* bitmap_;
   mutable size_t lowestFreePage_;
-  mutable StatusCode initializationStatus_ = StatusCode::Uninitialized;
+  mutable rtk::StatusCode initializationStatus_ =
+      rtk::StatusCode::Uninitialized;
   template <typename T>
   bool alignedFreeCheckAdvanceAndMark(size_t& pageNo, size_t count,
                                       size_t* pagesAllocated) const;
@@ -421,9 +425,10 @@ class VirtualMemoryAllocator {
       delete;
   VirtualMemoryAllocator& operator=(VirtualMemoryAllocator&& other) = delete;
 
-  virtual StatusCode allocatePage(uintptr_t* newVirtualAddressOut) const = 0;
-  virtual StatusCode allocatePages(size_t count,
-                                   uintptr_t* newVirtualAddressOut) const = 0;
+  virtual rtk::StatusCode allocatePage(
+      uintptr_t* newVirtualAddressOut) const = 0;
+  virtual rtk::StatusCode allocatePages(
+      size_t count, uintptr_t* newVirtualAddressOut) const = 0;
 
  protected:
   VirtualMemoryAllocator() = default;
@@ -431,9 +436,9 @@ class VirtualMemoryAllocator {
 
 class DefaultVirtualMemoryAllocator final : public VirtualMemoryAllocator {
  public:
-  StatusCode allocatePage(uintptr_t* newVirtualAddressOut) const override;
-  StatusCode allocatePages(size_t count,
-                           uintptr_t* newVirtualAddressOut) const override;
+  rtk::StatusCode allocatePage(uintptr_t* newVirtualAddressOut) const override;
+  rtk::StatusCode allocatePages(size_t count,
+                                uintptr_t* newVirtualAddressOut) const override;
 };  // class VirtualMemoryAllocator
 
 class MemoryBootstrapper {
@@ -447,8 +452,8 @@ class MemoryBootstrapper {
   virtual uintptr_t pageTablePhysicalAddress() const = 0;
   virtual size_t memorySize() const = 0;
   virtual uintptr_t mappedVirtualMemoryEnd() const = 0;
-  virtual StatusCode reserveVirtualMemory(size_t pageCount,
-                                          uintptr_t* newAddr) = 0;
+  virtual rtk::StatusCode reserveVirtualMemory(size_t pageCount,
+                                               uintptr_t* newAddr) = 0;
   virtual const KernelMemoryLayout& layout() const = 0;
 
   typedef struct {

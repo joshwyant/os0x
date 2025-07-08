@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdatomic.h>
-#include <initializer_list>
+// #include <initializer_list>
 #include "core/stdlib/stdlib.h"   // rtk::panic
 #include "core/stdlib/utility.h"  // rtk::swap, rtk::as_const
 
@@ -227,20 +227,20 @@ unique_ptr<T, heap_deleter<T>> make_unique(Args&&... args) {
   return unique_ptr<T, heap_deleter<T>>{new T(rtk::forward<Args>(args)...)};
 }
 template <typename T>
-unique_ptr<T, heap_deleter<T>> make_unique(std::nullptr_t) {
+unique_ptr<T, heap_deleter<T>> make_unique(decltype(nullptr)) {
   return unique_ptr<T, heap_deleter<T>>{nullptr};
 }
 
-template <typename T>
-unique_ptr<T[]> make_unique_array(std::initializer_list<T> args) {
-  auto ptr = new T[args.size()]{};
-  auto i = 0;
-  for (auto& arg : args) {
-    // copy (force lvalue reference)
-    ptr[i++] = arg;
-  };
-  return unique_ptr<T[]>{ptr, args.size()};
-}
+// template <typename T>
+// unique_ptr<T[]> make_unique_array(std::initializer_list<T> args) {
+//   auto ptr = new T[args.size()]{};
+//   auto i = 0;
+//   for (auto& arg : args) {
+//     // copy (force lvalue reference)
+//     ptr[i++] = arg;
+//   };
+//   return unique_ptr<T[]>{ptr, args.size()};
+// }
 
 // Caller is responsible for clearing dangling pointers and
 // relinquishing ownership. Do not use for array types.

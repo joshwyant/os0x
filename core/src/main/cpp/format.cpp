@@ -1,6 +1,6 @@
 #include "core/format.h"
-#include <cstdarg>
-#include <cstdint>
+#include <stdarg.h>
+#include <stdint.h>
 using namespace rtk;
 void Formatter::parsef(const char* format, ...) const {
   va_list arglist;

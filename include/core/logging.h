@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdarg>
+#include <stdarg.h>
 #include "core/stdlib/iostream.h"
 #include "core/stdlib/string.h"
 

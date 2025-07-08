@@ -238,14 +238,14 @@ int test_unique_null() {
   return 0;
 }
 
-int test_unique_array() {
-  auto arr = rtk::make_unique_array<int>({1, 2, 3});
-  EXPECT_EQUAL(arr[0], 1);
-  EXPECT_EQUAL(arr[1], 2);
-  EXPECT_EQUAL(arr[2], 3);
+// int test_unique_array() {
+//   auto arr = rtk::make_unique_array<int>({1, 2, 3});
+//   EXPECT_EQUAL(arr[0], 1);
+//   EXPECT_EQUAL(arr[1], 2);
+//   EXPECT_EQUAL(arr[2], 3);
 
-  return 0;
-}
+//   return 0;
+// }
 
 int test_unique_array_deleted() {
   bool deleted1, deleted2;
@@ -279,6 +279,6 @@ void stdlib_memory_tests() {
   TEST(test_unique_dereference);
   TEST(test_unique_bool);
   TEST(test_unique_null);
-  TEST(test_unique_array);
+  // TEST(test_unique_array);
   TEST(test_unique_array_deleted);
 }

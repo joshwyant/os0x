@@ -4,9 +4,9 @@
 #include <efilib.h>
 
 #include "asm.h"
-#include "minc.h"
 #include "mpservice.h"
 #include "packages/efi/bootinfo.h"
+#include "packages/efi/minc.h"
 #include "packages/efi/paging.h"
 #include "packages/elf/elf.h"
 // #include "packages/miniz/miniz.h"

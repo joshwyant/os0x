@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cstdarg>
-#include <cstddef>
-#include <cstdint>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
 
 namespace rtk {
 template <int base = 10, bool upper = false>

@@ -1,5 +1,5 @@
 #include "core/logging.h"
-#include <cstdarg>
+#include <stdarg.h>
 #include "core/format.h"
 #include "core/stdlib/cstring.h"
 using namespace rtk;

@@ -2,11 +2,11 @@
 
 #include "core/stdlib/string_view.h"
 
-#define CHECK_STATUS()              \
-  do {                              \
-    if (status != StatusCode::Ok) { \
-      return status;                \
-    }                               \
+#define CHECK_STATUS()                   \
+  do {                                   \
+    if (status != rtk::StatusCode::Ok) { \
+      return status;                     \
+    }                                    \
   } while (0)
 
 #define STATUS_LIST                                             \
@@ -27,12 +27,12 @@ enum class [[nodiscard]] StatusCode {
 #define X(val, name, msg) name = val,
   STATUS_LIST
 #undef X
-};  // enum class StatusCode
+};  // enum class rtk::StatusCode
 
-inline constexpr const char* StatusName(StatusCode code) {
+inline constexpr const char* StatusName(rtk::StatusCode code) {
   switch (code) {
-#define X(val, name, msg) \
-  case StatusCode::name:  \
+#define X(val, name, msg)     \
+  case rtk::StatusCode::name: \
     return #name;
     STATUS_LIST
 #undef X
@@ -41,10 +41,10 @@ inline constexpr const char* StatusName(StatusCode code) {
   }
 }
 
-inline constexpr const char* StatusDescription(StatusCode code) {
+inline constexpr const char* StatusDescription(rtk::StatusCode code) {
   switch (code) {
-#define X(val, name, msg) \
-  case StatusCode::name:  \
+#define X(val, name, msg)     \
+  case rtk::StatusCode::name: \
     return msg;
     STATUS_LIST
 #undef X
@@ -53,10 +53,10 @@ inline constexpr const char* StatusDescription(StatusCode code) {
   }
 }
 
-inline constexpr const char* StatusString(StatusCode code) {
+inline constexpr const char* StatusString(rtk::StatusCode code) {
   switch (code) {
-#define X(val, name, msg) \
-  case StatusCode::name:  \
+#define X(val, name, msg)     \
+  case rtk::StatusCode::name: \
     return #name " (" #val "): " msg;
     STATUS_LIST
 #undef X
@@ -65,8 +65,8 @@ inline constexpr const char* StatusString(StatusCode code) {
   }
 }
 
-void StatusTrap(StatusCode code);
-void StatusTrap(StatusCode code, string_view file, int line);
+void StatusTrap(rtk::StatusCode code);
+void StatusTrap(rtk::StatusCode code, string_view file, int line);
 #define TRAP(code) StatusTrap(rtk::StatusCode::code, __FILE__, __LINE__);
 
 #undef STATUS_LIST
@@ -76,13 +76,13 @@ void StatusTrap(StatusCode code, string_view file, int line);
 // class StatusOr {
 //   bool empty_;
 //   union {
-//     StatusCode status_;
+//     rtk::StatusCode status_;
 //     T item_;
 //   };
 
 //  public:
-//   StatusOr(StatusCode status) : empty_{true}, status_{status} {}
-//   StatusOr() : StatusOr(StatusCode::Ok) {}
+//   StatusOr(rtk::StatusCode status) : empty_{true}, status_{status} {}
+//   StatusOr() : StatusOr(rtk::StatusCode::Ok) {}
 //   StatusOr(const StatusOr& other) : StatusOr() { *this = other; }
 //   StatusOr(StatusOr&& other) noexcept : StatusOr() { swap(*this, other); }
 //   StatusOr& operator=(const StatusOr& other) {
@@ -114,7 +114,7 @@ void StatusTrap(StatusCode code, string_view file, int line);
 
 //     return *this;
 //   }
-//   StatusOr& operator=(StatusCode status) {
+//   StatusOr& operator=(rtk::StatusCode status) {
 //     reset();
 //     status_ = status;
 //   }
@@ -130,7 +130,7 @@ void StatusTrap(StatusCode code, string_view file, int line);
 //     a = move(b);
 //     b = move(temp);
 //   }
-//   constexpr operator StatusCode() const {
+//   constexpr operator rtk::StatusCode() const {
 //     if (!empty_) {
 //       TRAP(ValueNotAvailable);
 //       // Let's be safe if trap somehow returns
@@ -156,7 +156,7 @@ void StatusTrap(StatusCode code, string_view file, int line);
 //       item_.~T();
 //       empty_ = true;
 //     }
-//     status_ = StatusCode::Unknown;
+//     status_ = rtk::StatusCode::Unknown;
 //   }
 // };  // class StatusOr<T>
 

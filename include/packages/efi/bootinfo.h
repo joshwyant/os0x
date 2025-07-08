@@ -3,8 +3,8 @@
 #include <efi.h>
 #include <stddef.h>
 #include <stdint.h>
-#include "minc.h"
-#include "paging.h"
+#include "packages/efi/minc.h"
+#include "packages/efi/paging.h"
 
 typedef struct {
   EFI_MEMORY_DESCRIPTOR* memory_map;  // Pointer to UEFI memory map

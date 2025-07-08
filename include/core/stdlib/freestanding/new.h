@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstddef>
+#include <stddef.h>
 
 // Implemented in kernel/lib/cpp/runtime_support.cpp
 void* operator new(size_t, void* ptr) noexcept;
