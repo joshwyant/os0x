@@ -3,5 +3,7 @@
 .global _start
 
 _start:
-    jmp kernel_boot_uefi
+    call kernel_boot_uefi
+    h: hlt
+    jmp h
     

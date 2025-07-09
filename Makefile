@@ -11,7 +11,7 @@ QEMU_FLAGS := -m $(MEM_SIZE) \
 		-drive file=$(DISK_IMAGE),format=raw,if=virtio \
 		-echr 0x14 -nographic \
 		-vnc :1,password=off \
-		-s -S
+		-s -S \
 		#-d int --no-reboot
 EFI_BIN_FNAME := BOOTX64.EFI
 EFI_BASE := ./efi
