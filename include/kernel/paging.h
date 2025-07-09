@@ -310,6 +310,18 @@ class PageTables {
 
   virtual rtk::StatusCode map(uintptr_t vaddr, uintptr_t paddr,
                               PageAttr attributes) const = 0;
+  rtk::StatusCode map(size_t count, uintptr_t vaddr, uintptr_t paddr,
+                      PageAttr attributes) const {
+    for (auto i = 0; i < count; i++) {
+      auto status = map(vaddr, paddr, attributes);
+      if (status != rtk::StatusCode::Ok) {
+        return status;
+      }
+      vaddr += kPageSize;
+      paddr += kPageSize;
+    }
+    return rtk::StatusCode::Ok;
+  }
 
  protected:
   PageTables(uintptr_t pgtablePaddr, uintptr_t pgtableVaddr)
@@ -493,6 +505,7 @@ class MemoryBootstrapper {
     MemoryRangeIterator() : source_{nullptr}, iteration_{-1} {}
 
     MemoryRangeIterator(MemoryRangeSource* source) : MemoryRangeIterator() {
+      source_ = source;
       ++*this;
     }
     MemoryRangeSource* source_;

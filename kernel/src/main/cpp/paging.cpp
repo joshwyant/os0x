@@ -77,12 +77,14 @@ rtk::StatusCode RecursivePageTables::map(uintptr_t virtAddr, uintptr_t physAddr,
 
 uint8_t makeSetBitsMask(size_t& currentPage, size_t endPage) {
   auto byteMask = kByteMaskNoBitsSet;
-  for (; currentPage % UINT8_WIDTH != 0 && currentPage < endPage;
-       currentPage++) {
+  if (currentPage >= endPage)
+    return 0;
+  do {  // allow first bit to be byte-aligned
     auto currentBit = currentPage % UINT8_WIDTH;
     // clear the bit in the mask
     byteMask |= static_cast<uint8_t>(kByteMaskRightmostBitSet << currentBit);
-  }
+    currentPage++;
+  } while (currentPage % UINT8_WIDTH != 0 && currentPage < endPage);
   return byteMask;
 }
 
@@ -92,11 +94,12 @@ uint8_t makeUnsetBitsMask(size_t& currentPage, size_t endPage) {
 
 void DefaultPhysicalMemoryAllocator::init(
     const KernelContext* kernel, MemoryBootstrapper& bootstrapper) const {
-  auto& status = initializationStatus_;
+  auto& status = initializationStatus_;  // alias
 
   // Get the page frame bitmap parameters right
   const auto totalMemPages = bootstrapper.memorySize() / kPageSize;
-  auto pagesNeeded = totalMemPages / kBitsPerPage;
+  auto pagesNeeded =
+      (totalMemPages + kBitsPerPage - 1) / kBitsPerPage;  // round up
   bitmapSize_ = pagesNeeded * kPageSize;
 
   // Reserve our virtual memory space
@@ -122,8 +125,9 @@ void DefaultPhysicalMemoryAllocator::init(
     const auto bytesAllocated = pagesAllocated * kPageSize;
 
     // Map them to virtual memory
-    status = kernel->pageTables().map(currentPage, physicalAddress,
-                                      PageAttr::Present | PageAttr::RW);
+    status =
+        kernel->pageTables().map(pagesAllocated, currentPage, physicalAddress,
+                                 PageAttr::Present | PageAttr::RW);
     if (status != rtk::StatusCode::Ok)  // out of mem creating tables?
       return;
 
@@ -142,8 +146,10 @@ void DefaultPhysicalMemoryAllocator::init(
     auto endPage = startPage + range.count;
     auto currentPage = startPage;
 
-    // We can set lowest free page
-    lowestFreePage_ = startPage;
+    // We can initialize the lowest free page number
+    if (startPage < lowestFreePage_) {
+      lowestFreePage_ = startPage;
+    }
 
     // Build a bitmap for the first byte
     if (currentPage % UINT8_WIDTH != 0) {
@@ -157,12 +163,13 @@ void DefaultPhysicalMemoryAllocator::init(
     }
 
     // final byte
-    if (currentPage % UINT8_WIDTH != 0 && currentPage < endPage) {
+    if (currentPage < endPage) {
       auto lastByteIndex = currentPage / UINT8_WIDTH;
       auto byteMask = makeUnsetBitsMask(currentPage, endPage);
       bitmap_[lastByteIndex] &= byteMask;
     }
   }
+  initializationStatus_ = rtk::StatusCode::Ok;
 }
 
 DefaultPhysicalMemoryAllocator::DefaultPhysicalMemoryAllocator(

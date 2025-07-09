@@ -93,7 +93,7 @@ rtk::StatusCode UefiBootstrapPhysicalMemoryAllocator::allocatePages(
   for (auto i = parent_.descriptorIndex_ + 1; i < parent_.descriptorCount_;
        i++) {
     auto& d = *descriptor(parent_.memoryMap_, i);
-    if (isFreeMem(d.Type)) {
+    if (d.NumberOfPages > 0 && isFreeMem(d.Type)) {
       *newPhysicalAddressOut = d.PhysicalStart;
       *pagesAllocated = count < d.NumberOfPages ? count : d.NumberOfPages;
       d.NumberOfPages -= *pagesAllocated;
@@ -106,8 +106,7 @@ rtk::StatusCode UefiBootstrapPhysicalMemoryAllocator::allocatePages(
 }
 
 bool UefiMemoryBootstrapper::UefiFreePhysicalMemoryRange::move_next() {
-  auto& i = parent_.descriptorIndex_;
-  for (++i; i < parent_.descriptorCount_; i++) {
+  for (auto& i = parent_.descriptorIndex_; i < parent_.descriptorCount_; i++) {
     auto& d = *descriptor(parent_.memoryMap_, i);
     if (d.NumberOfPages > 0 && isFreeMem(d.Type)) {
       current_ = {EFI_PAGE_SIZE, d.PhysicalStart, d.NumberOfPages};
