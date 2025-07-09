@@ -233,7 +233,7 @@ EFI_STATUS map_virtual_address_space(EFI_SYSTEM_TABLE* SystemTable,
   //     ;
 
   // Identity map in our loader code and data
-  // If this changes, also update the unmapping code in kernel/init/uefi.cpp, UefiMemoryBootstrapper::~UefiMemoryBootstrapper()
+  // If this changes, also update the unmapping code in packages/efi_shim/src/main/cpp/uefi_shim.cpp, UefiMemoryBootstrapper::~UefiMemoryBootstrapper()
   boot_memmap_t initmm;
   UINTN mapKey;
   page_virtual_address_t loader_page = (uint64_t)-1, loader_code_page;

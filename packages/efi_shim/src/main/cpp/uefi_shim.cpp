@@ -1,20 +1,9 @@
 #include <efi.h>
 #include "kernel.h"
 
-#include "packages/efi_shim/uefi.h"
+#include "packages/efi_shim/uefi_shim.h"
 
 using namespace k;
-
-// Reserve a buffer for the uefi kernel bootstrapper
-alignas(UefiKernelBootstrapper) uint8_t
-    bootstrapper_buf[sizeof(UefiKernelBootstrapper)];
-
-const KernelBootstrapper& CreateBootstrapper(const boot_info_t* bootInfo) {
-  // Create the uefi kernel bootstrapper, in place of the buffer, passing in parameters
-  auto bootstrapper = new (bootstrapper_buf) UefiKernelBootstrapper{bootInfo};
-
-  return *bootstrapper;
-}
 
 // called from arch/*/start.S
 extern "C" void kernel_boot_uefi(const boot_info_t* bootInfo) {

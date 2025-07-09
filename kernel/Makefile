@@ -27,7 +27,7 @@ KERNEL_OBJS := 	obj/start.o \
 				obj/lib/c/runtime_support.o \
 				obj/lib/cpp/runtime_support.o \
 				obj/lib/cpp/new.o \
-				obj/packages/efi_shim/uefi.o
+				obj/packages/efi_shim/uefi_shim.o
 KERNEL_DEFINES := 
 KERNEL_CFLAGS := -target $(KERNEL_TARGET) -ffreestanding -fno-exceptions -fno-rtti -nostdlib -fno-builtin -fno-pic -mcmodel=large -g -c -MMD -MP
 KERNEL_ASFLAGS := -ffreestanding -m64 -c -MMD -MP
