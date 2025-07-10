@@ -80,19 +80,24 @@ class DynamicPlacement : public VirtualDelete<T> {
     }
   }
 
-  template <typename... Args>
-  static virtual_unique_ptr<T> create(Args&&... args) {
-    auto ptr = new T{rtk::forward(args)...};
-    ptr->isHeapAllocated_ = true;
-    return make_unique<T>(ptr);
-  }
+  template <typename Derived = T>
+  class Factory {
+   public:
+    template <typename... Args>
+    static virtual_unique_ptr<T> create(Args&&... args) {
+      auto ptr = new Derived{rtk::forward<Args>(args)...};
+      ptr->isHeapAllocated_ = true;
+      return virtual_unique_ptr<T>{ptr};
+    }
 
-  template <typename... Args>
-  static virtual_unique_ptr<T> create_at(T* placement, Args&&... args) {
-    auto ptr = new (placement) T{rtk::forward(args)...};
-    ptr->isHeapAllocated_ = false;
-    return make_unique<T>(ptr);
-  }
+    template <typename... Args>
+    static virtual_unique_ptr<T> create_at(Derived* placement, Args&&... args) {
+      auto ptr = new (placement) Derived{rtk::forward<Args>(args)...};
+      ptr->isHeapAllocated_ = false;
+      return virtual_unique_ptr<T>{ptr};
+    }
+
+  };  // class DynamicPlacement<T>::Factory<Derived>
 
  private:
   bool isHeapAllocated_ = true;

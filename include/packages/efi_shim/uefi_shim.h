@@ -9,11 +9,16 @@
 class UefiMemoryBootstrapper;
 class UefiKernelBootstrapper;
 class UefiBootstrapPhysicalMemoryAllocator;
+using MemBootstrap = UefiMemoryBootstrapper;
+using UPAllocator = UefiBootstrapPhysicalMemoryAllocator;
+using KPAllocator = k::PhysicalMemoryAllocator;
+using KBootstrap = UefiKernelBootstrapper;
 
-class UefiBootstrapPhysicalMemoryAllocator final
-    : public k::PhysicalMemoryAllocator {
+class UefiBootstrapPhysicalMemoryAllocator final  // aka using UPAllocator
+    : public KPAllocator,
+      public KPAllocator::Factory<UPAllocator> {
  public:
-  UefiBootstrapPhysicalMemoryAllocator(UefiMemoryBootstrapper& parent)
+  UefiBootstrapPhysicalMemoryAllocator(MemBootstrap& parent)
       : parent_{parent} {};
 
   rtk::StatusOr<uintptr_t> allocatePage() const override;
@@ -24,13 +29,15 @@ class UefiBootstrapPhysicalMemoryAllocator final
   UefiMemoryBootstrapper& parent_;
 };  // UefiBootstrapPhysicalMemoryAllocator
 
-class UefiMemoryBootstrapper final : public k::MemoryBootstrapper {
+class UefiMemoryBootstrapper final  // aka using MemBootstrap
+    : public k::MemoryBootstrapper,
+      public k::MemoryBootstrapper::Factory<MemBootstrap> {
  public:
   UefiMemoryBootstrapper(const UefiKernelBootstrapper& parent);
 
   ~UefiMemoryBootstrapper() noexcept override;
   const k::PhysicalMemoryAllocator& bootstrapAllocator() const override {
-    return bootstrapAllocator_;
+    return *bootstrapAllocator_.get();
   }
   uintptr_t pageTablePhysicalAddress() const override {
     return pageTablePhysicalAddress_;
@@ -66,7 +73,7 @@ class UefiMemoryBootstrapper final : public k::MemoryBootstrapper {
   friend class UefiFreePhysicalMemoryRange;
   friend class UefiBootstrapPhysicalMemoryAllocator;
   const k::DefaultKernelMemoryLayout layout_;
-  const UefiBootstrapPhysicalMemoryAllocator bootstrapAllocator_;
+  alignas(UPAllocator) uint8_t bootstrapAllocatorBuf_[sizeof(UPAllocator)];
   const uintptr_t pageTablePhysicalAddress_;
   const boot_memmap_t memoryMap_;
   const size_t descriptorCount_;
@@ -74,6 +81,7 @@ class UefiMemoryBootstrapper final : public k::MemoryBootstrapper {
   UefiFreePhysicalMemoryRange physicalMemoryRange_;
   uintptr_t nextFreeVirtualPage_;
   size_t memSize_;
+  rtk::virtual_unique_ptr<KPAllocator> bootstrapAllocator_;
 };  // class UefiMemoryBootstrapper
 
 class UefiKernelBootstrapper final : public k::KernelBootstrapper {
@@ -107,7 +115,6 @@ inline size_t UefiBootstrapPhysicalMemoryAllocator::memorySize() const {
 inline UefiMemoryBootstrapper::UefiMemoryBootstrapper(
     const UefiKernelBootstrapper& parent)
     : layout_{},
-      bootstrapAllocator_{*this},
       pageTablePhysicalAddress_{parent.bootInfo().page_table_physical},
       memoryMap_{parent.bootInfo().memory_map},
       descriptorCount_{parent.bootInfo().memory_map.memory_map_size /
@@ -115,4 +122,6 @@ inline UefiMemoryBootstrapper::UefiMemoryBootstrapper(
       descriptorIndex_{-1},
       physicalMemoryRange_{*this},
       nextFreeVirtualPage_{parent.bootInfo().memory_end},
-      memSize_{calcMemSize(parent.bootInfo().memory_map)} {}
+      memSize_{calcMemSize(parent.bootInfo().memory_map)},
+      bootstrapAllocator_{UPAllocator::create_at(
+          reinterpret_cast<UPAllocator*>(bootstrapAllocatorBuf_), *this)} {}

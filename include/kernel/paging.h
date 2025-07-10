@@ -387,7 +387,8 @@ class RecursivePageTables final : public PageTables {
   }
 };  // class RecursivePageTables
 
-class PhysicalMemoryAllocator : rtk::DynamicPlacement<PhysicalMemoryAllocator> {
+class PhysicalMemoryAllocator
+    : public rtk::DynamicPlacement<PhysicalMemoryAllocator> {
  public:
   PhysicalMemoryAllocator(const PhysicalMemoryAllocator& other) = delete;
   PhysicalMemoryAllocator(PhysicalMemoryAllocator&& other) = delete;
@@ -398,11 +399,10 @@ class PhysicalMemoryAllocator : rtk::DynamicPlacement<PhysicalMemoryAllocator> {
   virtual rtk::StatusOr<uintptr_t> allocatePage() const = 0;
   virtual rtk::StatusOr<PageSet> allocatePages(size_t count) const = 0;
   virtual size_t memorySize() const = 0;
+  virtual ~PhysicalMemoryAllocator() = default;
 
  protected:
   PhysicalMemoryAllocator() = default;
-
- private:
 };  // class PhysicalMemoryAllocator
 
 class DefaultPhysicalMemoryAllocator final : public PhysicalMemoryAllocator {
@@ -448,7 +448,7 @@ class DefaultVirtualMemoryAllocator final : public VirtualMemoryAllocator {
   rtk::StatusOr<PageSet> allocatePages(size_t count) const override;
 };  // class VirtualMemoryAllocator
 
-class MemoryBootstrapper {
+class MemoryBootstrapper : public rtk::DynamicPlacement<MemoryBootstrapper> {
  public:
   MemoryBootstrapper(const MemoryBootstrapper& other) = delete;
   MemoryBootstrapper& operator=(const MemoryBootstrapper& other) = delete;
