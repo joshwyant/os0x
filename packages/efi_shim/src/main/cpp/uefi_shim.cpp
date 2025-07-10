@@ -66,28 +66,26 @@ rtk::StatusCode UefiMemoryBootstrapper::reserveVirtualMemory(
   return rtk::StatusCode::Ok;
 }
 
-rtk::StatusCode UefiBootstrapPhysicalMemoryAllocator::allocatePage(
-    uintptr_t* newPhysicalAddressOut) const {
-  size_t pagesAllocated;  // discard
-  return allocatePages(1, newPhysicalAddressOut, &pagesAllocated);
+rtk::StatusOr<uintptr_t> UefiBootstrapPhysicalMemoryAllocator::allocatePage()
+    const {
+  return allocatePages(1).map([](auto pageSet) { return pageSet.address; });
 }
 
-rtk::StatusCode UefiBootstrapPhysicalMemoryAllocator::allocatePages(
-    size_t count, uintptr_t* newPhysicalAddressOut,
-    size_t* pagesAllocated) const {
-  *newPhysicalAddressOut = 0;
-  *pagesAllocated = 0;
+rtk::StatusOr<PageSet> UefiBootstrapPhysicalMemoryAllocator::allocatePages(
+    size_t count) const {
+  uintptr_t newPhysicalAddressOut = 0;
+  size_t pagesAllocated = 0;
 
   // Start past current; on something that hasn't already been reported as "free"
   for (auto i = parent_.descriptorIndex_ + 1; i < parent_.descriptorCount_;
        i++) {
     auto& d = *descriptor(parent_.memoryMap_, i);
     if (d.NumberOfPages > 0 && isFreeMem(d.Type)) {
-      *newPhysicalAddressOut = d.PhysicalStart;
-      *pagesAllocated = count < d.NumberOfPages ? count : d.NumberOfPages;
-      d.NumberOfPages -= *pagesAllocated;
-      d.PhysicalStart += *pagesAllocated * EFI_PAGE_SIZE;
-      return rtk::StatusCode::Ok;
+      newPhysicalAddressOut = d.PhysicalStart;
+      pagesAllocated = count < d.NumberOfPages ? count : d.NumberOfPages;
+      d.NumberOfPages -= pagesAllocated;
+      d.PhysicalStart += pagesAllocated * EFI_PAGE_SIZE;
+      return PageSet{kPageSize, newPhysicalAddressOut, pagesAllocated};
     }
   }
 
@@ -107,8 +105,8 @@ bool UefiMemoryBootstrapper::UefiFreePhysicalMemoryRange::move_next() {
   return false;
 }
 
-const MemoryBootstrapper::PageSet&
-UefiMemoryBootstrapper::UefiFreePhysicalMemoryRange::current() const {
+const k::PageSet& UefiMemoryBootstrapper::UefiFreePhysicalMemoryRange::current()
+    const {
   return current_;
 }
 

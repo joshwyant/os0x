@@ -20,6 +20,12 @@ class KernelContext;
 
 constexpr size_t kPageSize = 0x1000;  // 4096 bytes
 
+struct PageSet {
+  size_t pageSize;
+  uintptr_t address;
+  size_t count;
+};
+
 class KernelMemoryLayout {
  public:
   KernelMemoryLayout(uintptr_t userStart, uintptr_t userEnd,
@@ -273,15 +279,12 @@ inline PageLevel operator--(PageLevel& level, int)  // postfix
 
 class __attribute__((aligned(4096))) __attribute__((packed)) PageTable {
  public:
-  rtk::StatusCode getEntry(size_t index, volatile PageEntry& out) const
-      volatile {
+  rtk::StatusOr<volatile PageEntry*> getEntry(size_t index) volatile {
     if (index >= kNumEntries) {
-      out = {};
       return rtk::StatusCode::OutOfBounds;
     }
 
-    out = entries_[index];
-    return rtk::StatusCode::Ok;
+    return &entries_[index];
   }
   rtk::StatusCode setEntry(size_t index, PageEntry in) volatile {
     if (index >= kNumEntries) {
@@ -326,7 +329,7 @@ class PageTables {
  protected:
   PageTables(uintptr_t pgtablePaddr, uintptr_t pgtableVaddr)
       : pml4Paddr_{pgtablePaddr}, pml4_{*(PageTable*)pgtableVaddr} {}
-  const PageTable& pml4_;
+  PageTable& pml4_;
   const uintptr_t pml4Paddr_;
 };  // class PageTables
 
@@ -393,11 +396,8 @@ class PhysicalMemoryAllocator {
       delete;
   PhysicalMemoryAllocator& operator=(PhysicalMemoryAllocator&& other) = delete;
 
-  virtual rtk::StatusCode allocatePage(
-      uintptr_t* newPhysicalAddressOut) const = 0;
-  virtual rtk::StatusCode allocatePages(size_t count,
-                                        uintptr_t* newPhysicalAddressOut,
-                                        size_t* pagesAllocated) const = 0;
+  virtual rtk::StatusOr<uintptr_t> allocatePage() const = 0;
+  virtual rtk::StatusOr<PageSet> allocatePages(size_t count) const = 0;
   virtual size_t memorySize() const = 0;
 
  protected:
@@ -409,9 +409,8 @@ class PhysicalMemoryAllocator {
 class DefaultPhysicalMemoryAllocator final : public PhysicalMemoryAllocator {
  public:
   DefaultPhysicalMemoryAllocator(MemoryBootstrapper& memoryBootstrapper);
-  rtk::StatusCode allocatePage(uintptr_t* newPhysicalAddressOut) const override;
-  rtk::StatusCode allocatePages(size_t count, uintptr_t* newPhysicalAddressOut,
-                                size_t* pagesAllocated) const override;
+  rtk::StatusOr<uintptr_t> allocatePage() const override;
+  rtk::StatusOr<PageSet> allocatePages(size_t count) const override;
   void init(const KernelContext* kernel,
             MemoryBootstrapper& memoryBootstrapper) const;
   size_t memorySize() const override { return memorySize_; }
@@ -468,16 +467,10 @@ class MemoryBootstrapper {
                                                uintptr_t* newAddr) = 0;
   virtual const KernelMemoryLayout& layout() const = 0;
 
-  typedef struct {
-    size_t pageSize;
-    uintptr_t address;
-    size_t count;
-  } PageSet;
-
   class MemoryRangeSource {
    public:
     virtual bool move_next() = 0;
-    virtual const PageSet& current() const = 0;
+    virtual const k::PageSet& current() const = 0;
   };  // class MemoryBootstrapper::MemoryRangeSource
 
   class MemoryRange;
@@ -488,7 +481,7 @@ class MemoryBootstrapper {
     bool operator!=(const MemoryRangeIterator& other) const {
       return iteration_ != other.iteration_;
     }
-    const PageSet& operator*() { return value_; }
+    const k::PageSet& operator*() { return value_; }
     MemoryRangeIterator& operator++() {
       if (source_ != nullptr && source_->move_next()) {
         iteration_++;
@@ -509,7 +502,7 @@ class MemoryBootstrapper {
       ++*this;
     }
     MemoryRangeSource* source_;
-    PageSet value_;
+    k::PageSet value_;
     int iteration_;
   };  // class MemoryBootstrapper::MemoryRangeIterator
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 namespace rtk {
 template <class T, T v>
 // https://cplusplus.com/reference/type_traits/integral_constant/

@@ -35,25 +35,27 @@ RecursivePageTables::RecursivePageTables(
 rtk::StatusCode RecursivePageTables::map(uintptr_t virtAddr, uintptr_t physAddr,
                                          PageAttr attributes) const {
   rtk::StatusCode status;
-  const volatile PageTable* table = &pml4_;
+  volatile PageTable* table = &pml4_;
 
   // Recurse page tables and make sure they exist; find the final page table
   for (auto level = PageLevel::PML4; level > PageLevel::PT; level--) {
     // Get the next entry from the table using the virtual address
-    volatile PageEntry entry;
     auto idx = entryIndex(virtAddr, level);
-    status = table->getEntry(idx, entry);
-    CHECK_STATUS();  // bounds check
+    auto entryResult = table->getEntry(idx);
+    if (!entryResult.ok())
+      return entryResult.status();  // out of bounds
+    auto entry = entryResult.get();
 
     // Get the subtable by calculating its address, potentially creating it if entry doesn't exist
     // Parameterized subtable addressing is a property of recursive page tables.
     volatile auto subtable =
         (volatile PageTable*)tableAddress(virtAddr, level - 1);
-    if (!entry.present()) {
+    if (!entry->present()) {
       // Allocate a page for the subtable
-      uintptr_t subtableNewPaddr;
-      status = pallocator_.allocatePage(&subtableNewPaddr);
-      CHECK_STATUS();  // out of mem?
+      auto allocateResult = pallocator_.allocatePage();
+      if (!allocateResult)
+        return allocateResult.status();  // out of mem?
+      auto subtableNewPaddr = allocateResult.get();
 
       // Bring subtable into virtual page table mapping space (calls invlpg)
       // This is again possible thanks to recursive mapping.
@@ -115,18 +117,16 @@ void DefaultPhysicalMemoryAllocator::init(
   // until we have enough for the bitmap; Allocate and map them to virtual memory along the way
   while (pagesNeeded > 0) {
     // Allocate physical pages
-    uintptr_t physicalAddress;
-    size_t pagesAllocated;
-    status = kernel->pageAllocator().allocatePages(
-        pagesNeeded, &physicalAddress, &pagesAllocated);
-    if (status != rtk::StatusCode::Ok)
+    auto memResult = kernel->pageAllocator().allocatePages(pagesNeeded);
+    if (!memResult.ok())
       return;  // out of physical mem?
+    auto newPages = memResult.get();
 
-    const auto bytesAllocated = pagesAllocated * kPageSize;
+    const auto bytesAllocated = newPages.count * kPageSize;
 
     // Map them to virtual memory
     status =
-        kernel->pageTables().map(pagesAllocated, currentPage, physicalAddress,
+        kernel->pageTables().map(newPages.count, currentPage, newPages.address,
                                  PageAttr::Present | PageAttr::RW);
     if (status != rtk::StatusCode::Ok)  // out of mem creating tables?
       return;
@@ -137,7 +137,7 @@ void DefaultPhysicalMemoryAllocator::init(
 
     // Advance
     currentPage += bytesAllocated;
-    pagesNeeded -= pagesAllocated;
+    pagesNeeded -= newPages.count;
   }
 
   // Enumerate physical memory and mark where it's free
@@ -177,10 +177,8 @@ DefaultPhysicalMemoryAllocator::DefaultPhysicalMemoryAllocator(
     : memorySize_(memoryBootstrapper.memorySize()),
       lowestFreePage_(UINTPTR_MAX) {}
 
-rtk::StatusCode DefaultPhysicalMemoryAllocator::allocatePage(
-    uintptr_t* newPhyiscalAddressOut) const {
-  size_t pagesAllocated;  // discard
-  return allocatePages(1, newPhyiscalAddressOut, &pagesAllocated);
+rtk::StatusOr<uintptr_t> DefaultPhysicalMemoryAllocator::allocatePage() const {
+  return allocatePages(1).map([](auto pageSet) { return pageSet.address; });
 }
 
 template <typename T>
@@ -213,9 +211,8 @@ bool DefaultPhysicalMemoryAllocator::alignedFreeCheckAdvanceAndMark(
   return isFree;
 }
 
-rtk::StatusCode DefaultPhysicalMemoryAllocator::allocatePages(
-    size_t count, uintptr_t* newPhyiscalAddressOut,
-    size_t* pagesAllocated) const {
+rtk::StatusOr<PageSet> DefaultPhysicalMemoryAllocator::allocatePages(
+    size_t count) const {
   CHECK_INIT_STATUS();
 
   if (count == 0) {
@@ -224,12 +221,12 @@ rtk::StatusCode DefaultPhysicalMemoryAllocator::allocatePages(
 
   const auto startPage = lowestFreePage_;
   const auto bitmapPages = bitmapSize_ * UINT8_WIDTH;
-  *pagesAllocated = 0;
+  size_t pagesAllocated = 0;
 
   // Enumerate bitmap in chunks of 1 or 8*2^x bits
   for (auto page = startPage; page < bitmapPages; page++) {
     const auto bitmapPagesLeft = bitmapPages - page;
-    const auto pagesNeeded = count - *pagesAllocated;
+    const auto pagesNeeded = count - pagesAllocated;
     const auto byte = page / UINT8_WIDTH;
     const auto bit = page % UINT8_WIDTH;
     const auto align = bit % UINT64_WIDTH;
@@ -239,20 +236,20 @@ rtk::StatusCode DefaultPhysicalMemoryAllocator::allocatePages(
       // 64-bit boundary
       case 0:
         if (alignedFreeCheckAdvanceAndMark<uint64_t>(page, count,
-                                                     pagesAllocated))
+                                                     &pagesAllocated))
           continue;
         break;
       // 32-bit boundary
       case UINT32_WIDTH:
         if (alignedFreeCheckAdvanceAndMark<uint32_t>(page, count,
-                                                     pagesAllocated))
+                                                     &pagesAllocated))
           continue;
         break;
       // 16-bit boundary
       case UINT16_WIDTH:
       case UINT16_WIDTH * 3:
         if (alignedFreeCheckAdvanceAndMark<uint16_t>(page, count,
-                                                     pagesAllocated))
+                                                     &pagesAllocated))
           continue;
         break;
       // 8-bit boundary
@@ -261,7 +258,7 @@ rtk::StatusCode DefaultPhysicalMemoryAllocator::allocatePages(
       case UINT8_WIDTH * 5:
       case UINT8_WIDTH * 7:
         if (alignedFreeCheckAdvanceAndMark<uint8_t>(page, count,
-                                                    pagesAllocated))
+                                                    &pagesAllocated))
           continue;
         break;
     }
@@ -271,7 +268,7 @@ rtk::StatusCode DefaultPhysicalMemoryAllocator::allocatePages(
     auto isFree = (bitmap_[byte] & mask) == kByteMaskNoBitsSet;
 
     if (!isFree) {
-      if (*pagesAllocated == 0)
+      if (pagesAllocated == 0)
         continue;  // Try another page;
       break;  // Or, we have broken continuity, that's all the pages we can allocate at this address.
     }
@@ -284,16 +281,16 @@ rtk::StatusCode DefaultPhysicalMemoryAllocator::allocatePages(
 
     // Mark used
     bitmap_[byte] |= mask;
-    (*pagesAllocated)++;
+    pagesAllocated++;
   }
 
-  if (*pagesAllocated == 0) {
+  if (pagesAllocated == 0) {
     lowestFreePage_ = bitmapPages;  // literally no lowest free page
     return rtk::StatusCode::OutOfMemory;
   }
 
-  *newPhyiscalAddressOut = startPage * kPageSize;
-  return rtk::StatusCode::Ok;
+  uintptr_t newPhysicalAddress = startPage * kPageSize;
+  return PageSet{kPageSize, newPhysicalAddress, pagesAllocated};
 }
 
 rtk::StatusCode DefaultVirtualMemoryAllocator::allocatePage(

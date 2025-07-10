@@ -16,9 +16,8 @@ class UefiBootstrapPhysicalMemoryAllocator final
   UefiBootstrapPhysicalMemoryAllocator(UefiMemoryBootstrapper& parent)
       : parent_{parent} {};
 
-  rtk::StatusCode allocatePage(uintptr_t* newPhysicalAddressOut) const override;
-  rtk::StatusCode allocatePages(size_t count, uintptr_t* newPhysicalAddressOut,
-                                size_t* pagesAllocated) const override;
+  rtk::StatusOr<uintptr_t> allocatePage() const override;
+  rtk::StatusOr<k::PageSet> allocatePages(size_t count) const override;
   size_t memorySize() const override;
 
  private:
@@ -49,11 +48,11 @@ class UefiMemoryBootstrapper final : public k::MemoryBootstrapper {
     }
 
     bool move_next() override;
-    const PageSet& current() const override;
+    const k::PageSet& current() const override;
 
    private:
     UefiMemoryBootstrapper& parent_;
-    PageSet current_;
+    k::PageSet current_;
   };
 
   MemoryRange processFreePhysicalMemoryPages() override;

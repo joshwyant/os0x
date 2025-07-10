@@ -1,6 +1,8 @@
 #pragma once
 
 #include "core/stdlib/string_view.h"
+#include "core/stdlib/type_traits.h"
+#include "core/stdlib/utility.h"
 
 #define CHECK_STATUS()                   \
   do {                                   \
@@ -72,92 +74,112 @@ void StatusTrap(rtk::StatusCode code, string_view file, int line);
 #undef STATUS_LIST
 #undef STATUS_UNDEFINED
 
-// template <typename T>
-// class StatusOr {
-//   bool empty_;
-//   union {
-//     rtk::StatusCode status_;
-//     T item_;
-//   };
+template <typename T>
+class StatusOr {
+  bool hasT_;
+  union {
+    rtk::StatusCode status_;
+    T item_;
+  };
 
-//  public:
-//   StatusOr(rtk::StatusCode status) : empty_{true}, status_{status} {}
-//   StatusOr() : StatusOr(rtk::StatusCode::Ok) {}
-//   StatusOr(const StatusOr& other) : StatusOr() { *this = other; }
-//   StatusOr(StatusOr&& other) noexcept : StatusOr() { swap(*this, other); }
-//   StatusOr& operator=(const StatusOr& other) {
-//     if (this == &other)
-//       return *this;
+ public:
+  using value_type = T;
+  StatusOr(rtk::StatusCode status) : hasT_{false}, status_{status} {}
+  StatusOr(T t) : hasT_{true}, item_{t} {}
+  StatusOr() : StatusOr(rtk::StatusCode::Unknown) {}
+  StatusOr(const StatusOr& other) : StatusOr() { *this = other; }
+  StatusOr(StatusOr&& other) noexcept : StatusOr() { swap(*this, other); }
+  StatusOr& operator=(const StatusOr& other) {
+    if (this == &other)
+      return *this;
 
-//     reset();
-//     empty_ = other.empty_;
-//     if (empty_) {
-//       status_ = other.status_;
-//     } else {
-//       itme_ = other.item_;
-//     }
+    reset();
+    hasT_ = other.hasT_;
+    if (!hasT_) {
+      status_ = other.status_;
+    } else {
+      item_ = other.item_;
+    }
 
-//     return *this;
-//   }
-//   StatusOr& operator=(StatusOr&& other) noexcept {
-//     if (this == &other)
-//       return *this;
+    return *this;
+  }
+  StatusOr& operator=(StatusOr&& other) noexcept {
+    if (this == &other)
+      return *this;
 
-//     reset();
-//     empty_ = other.empty_;
-//     if (empty_) {
-//       status_ = other.status_;
-//     } else {
-//       item_ = other.item_;
-//     }
-//     other.reset();
+    reset();
+    hasT_ = other.hasT_;
+    if (!hasT_) {
+      status_ = other.status_;
+    } else {
+      item_ = rtk::move(other.item_);
+    }
+    other.reset();
 
-//     return *this;
-//   }
-//   StatusOr& operator=(rtk::StatusCode status) {
-//     reset();
-//     status_ = status;
-//   }
-//   template <>
-//   StatusOr operator=(T&& item) {
-//     reset();
-//     empty_ = false;
-//     item_ = item;
-//   }
-//   friend void swap(StatusOr& a, StatusOr& b) {
-//     // Use move assign manually to guarantee behavior
-//     StatusOr temp = move(a);
-//     a = move(b);
-//     b = move(temp);
-//   }
-//   constexpr operator rtk::StatusCode() const {
-//     if (!empty_) {
-//       TRAP(ValueNotAvailable);
-//       // Let's be safe if trap somehow returns
-//       reset();
-//     }
-//     return status_;
-//   }
-//   const T& get() const {
-//     if (empty_) {
-//       TRAP(ValueNotAvailable);
-//       // Let's be safe if trap somehow returns
-//       empty_ = false;
-//       item_ = {};
-//     }
-//     return item_;
-//   }
-//   T& get() { return const_cast<T&>(as_const(*this).get()); }
-//   virtual ~StatusOr() { reset(); }
+    return *this;
+  }
+  StatusOr& operator=(rtk::StatusCode status) {
+    reset();
+    status_ = status;
+  }
+  StatusOr& operator=(T&& item) {
+    reset();
+    hasT_ = true;
+    item_ = rtk::move(item);
+    return *this;
+  }
+  friend void swap(StatusOr& a, StatusOr& b) {
+    // Use move assign manually to guarantee behavior
+    StatusOr temp = move(a);
+    a = move(b);
+    b = move(temp);
+  }
+  constexpr operator rtk::StatusCode() const {
+    if (hasT_) {
+      return StatusCode::Ok;
+    }
+    return status_;
+  }
+  const T& get() const {
+    if (!hasT_) {
+      StatusTrap(status_);
+    }
+    return item_;
+  }
+  T& get() { return const_cast<T&>(as_const(*this).get()); }
+  virtual ~StatusOr() { reset(); }
+  bool operator!() { return !hasT_; }
+  rtk::StatusCode status() const { return hasT_ ? StatusCode::Ok : status_; }
+  bool ok() const { return hasT_; }
 
-//  private:
-//   void reset() {
-//     if (!empty_) {
-//       item_.~T();
-//       empty_ = true;
-//     }
-//     status_ = rtk::StatusCode::Unknown;
-//   }
-// };  // class StatusOr<T>
+  template <typename F>
+  auto map(F f) const -> StatusOr<decltype(f(item_))> {
+    using U = decltype(f(item_));
+    if (!ok()) {
+      return StatusOr<U>(status_);
+    }
+    return StatusOr<U>(f(item_));
+  }
+
+  template <typename F>
+  auto and_then(F&& f) const {
+    using U = decltype(f(item_));
+    // static_assert(rtk::is_same<U, StatusOr<typename U::value_type>>::value,
+    //               "and_then must return StatusOr");
+
+    if (!ok())
+      return U(status_);
+    return f(item_);
+  }
+
+ private:
+  void reset() {
+    if (hasT_) {
+      item_.~T();
+      hasT_ = false;
+    }
+    status_ = rtk::StatusCode::Unknown;
+  }
+};  // class StatusOr<T>
 
 }  // namespace rtk
