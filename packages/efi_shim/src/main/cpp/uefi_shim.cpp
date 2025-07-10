@@ -13,7 +13,7 @@ extern "C" void kernel_boot_uefi(const boot_info_t* bootInfo) {
   if (bootInfo == NULL || bootInfo->magic != boot_info_t::BOOTINFO_MAGIC)
     freeze();
 
-  constexpr auto kCatpuccinMochaMantleColor = 0x00181825;
+  // constexpr auto kCatpuccinMochaMantleColor = 0x00181825;
   // clear_screen(bootInfo,
   //              kCatpuccinMochaMantleColor);  // catppuccin mocha mantle
 
@@ -28,7 +28,7 @@ extern "C" void kernel_boot_uefi(const boot_info_t* bootInfo) {
   }
 
   // Call kernel_main
-  rtk::StatusCode status = kernel_main(*kernelContext);
+  rtk::StatusCode _ = kernel_main(*kernelContext);
 
   // Loop forever
   freeze();
@@ -36,11 +36,11 @@ extern "C" void kernel_boot_uefi(const boot_info_t* bootInfo) {
 
 UefiMemoryBootstrapper::~UefiMemoryBootstrapper() noexcept {
   // Unmap UEFI loader code and data that was identity-mapped in at boot/efi/virtual.cpp, map_virtual_address_space()
-  for (auto i = 0; i < descriptorCount(memoryMap_); i++) {
+  for (size_t i = 0; i < descriptorCount(memoryMap_); i++) {
     auto& d = *descriptor(memoryMap_, i);
 
     if (shouldBeUnmapped(d.Type)) {
-      for (auto j = 0; j < d.NumberOfPages; j++) {
+      for (size_t j = 0; j < d.NumberOfPages; j++) {
         auto entry = PT_ENTRY_PTR(d.PhysicalStart + EFI_PAGE_SIZE * j);
         *entry = 0;  // Unmap the page.
       }
@@ -78,7 +78,7 @@ rtk::StatusOr<PageSet> UefiBootstrapPhysicalMemoryAllocator::allocatePages(
   size_t pagesAllocated = 0;
 
   // Start past current; on something that hasn't already been reported as "free"
-  for (auto i = parent_.descriptorIndex_ + 1; i < parent_.descriptorCount_;
+  for (size_t i = parent_.descriptorIndex_ + 1; i < parent_.descriptorCount_;
        i++) {
     auto& d = *descriptor(parent_.memoryMap_, i);
     if (d.NumberOfPages > 0 && isFreeMem(d.Type)) {
@@ -94,7 +94,8 @@ rtk::StatusOr<PageSet> UefiBootstrapPhysicalMemoryAllocator::allocatePages(
 }
 
 bool UefiMemoryBootstrapper::UefiFreePhysicalMemoryRange::move_next() {
-  for (auto& i = parent_.descriptorIndex_; i < parent_.descriptorCount_; i++) {
+  for (auto& i = parent_.descriptorIndex_;
+       i < static_cast<int>(parent_.descriptorCount_); i++) {
     auto& d = *descriptor(parent_.memoryMap_, i);
     if (d.NumberOfPages > 0 && isFreeMem(d.Type)) {
       current_ = {EFI_PAGE_SIZE, d.PhysicalStart, d.NumberOfPages};
@@ -126,8 +127,8 @@ inline EFI_MEMORY_DESCRIPTOR* descriptor(const boot_memmap_t& mm, size_t i) {
 }
 size_t calcMemSize(const boot_memmap_t& mm) {
   size_t extent = 0;
-  size_t count = descriptorCount(mm);
-  for (auto i = 0; i < count; i++) {
+  auto count = descriptorCount(mm);
+  for (size_t i = 0; i < count; i++) {
     auto& d = *descriptor(mm, i);
     if (isFreeMem(d.Type)) {
       auto end = d.PhysicalStart + EFI_PAGE_SIZE * d.NumberOfPages;

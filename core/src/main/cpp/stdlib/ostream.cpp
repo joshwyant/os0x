@@ -7,7 +7,7 @@ using namespace rtk;
 static inline void out(ostream& stream, uintmax_t value,
                        ios_base::fmtflags flags, size_t width, bool isSigned,
                        bool negative, char fill) {
-  const auto showsign = isSigned && negative || ((flags & ios::showpos) != 0);
+  const auto showsign = (isSigned && negative) || ((flags & ios::showpos) != 0);
   const auto upper = (flags & ios::uppercase) != 0;
   const auto hex = (flags & ios::hex) != 0;
   const auto octal = (flags & ios::oct) != 0;

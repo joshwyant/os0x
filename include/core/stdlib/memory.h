@@ -211,6 +211,7 @@ class unique_ptr<T[], Deleter> : public unique_ptr_base<T, Deleter> {
   }
   void reset(T* ptr, size_t len) {
     reset();
+    ptr_ = ptr;
     len_ = len;
   }
 

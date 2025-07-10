@@ -167,8 +167,8 @@ class __attribute__((aligned(8))) __attribute__((packed)) PageEntry {
   }
   void clear() volatile { value_ = 0; }
   void setAttributes(PageAttr newAttributes) volatile {
-    value_ =
-        value_ & 0x000FFFFFFFFFF000ULL | static_cast<uintptr_t>(newAttributes);
+    value_ = (value_ & 0x000FFFFFFFFFF000ULL) |
+             static_cast<uintptr_t>(newAttributes);
   }
   void addAttributes(PageAttr newAttributes) volatile {
     value_ |= static_cast<uintptr_t>(newAttributes);
@@ -315,7 +315,7 @@ class PageTables {
                               PageAttr attributes) const = 0;
   rtk::StatusCode map(size_t count, uintptr_t vaddr, uintptr_t paddr,
                       PageAttr attributes) const {
-    for (auto i = 0; i < count; i++) {
+    for (size_t i = 0; i < count; i++) {
       auto status = map(vaddr, paddr, attributes);
       if (status != rtk::StatusCode::Ok) {
         return status;
@@ -328,7 +328,7 @@ class PageTables {
 
  protected:
   PageTables(uintptr_t pgtablePaddr, uintptr_t pgtableVaddr)
-      : pml4Paddr_{pgtablePaddr}, pml4_{*(PageTable*)pgtableVaddr} {}
+      : pml4_{*(PageTable*)pgtableVaddr}, pml4Paddr_{pgtablePaddr} {}
   PageTable& pml4_;
   const uintptr_t pml4Paddr_;
 };  // class PageTables
@@ -337,7 +337,7 @@ class RecursivePageTables final : public PageTables {
  public:
   RecursivePageTables(const KernelMemoryLayout& layout,
                       const PhysicalMemoryAllocator& pallocator,
-                      const VirtualMemoryAllocator& vallocator,
+                      // const VirtualMemoryAllocator& vallocator,
                       const MemoryBootstrapper& memoryBootstrapper);
 
   rtk::StatusCode map(uintptr_t virtAddr, uintptr_t physAddr,
@@ -345,9 +345,9 @@ class RecursivePageTables final : public PageTables {
 
  private:
   const uintptr_t tablesStart_;
-  const uintptr_t tablesEnd_;
+  // const uintptr_t tablesEnd_;
   const PhysicalMemoryAllocator& pallocator_;
-  const VirtualMemoryAllocator& vallocator_;
+  // const VirtualMemoryAllocator& vallocator_;
   constexpr uintptr_t entryAddr(uintptr_t address) const {
     return (tablesStart_ |
             (((uintptr_t)(address) >> 9) &
@@ -371,16 +371,14 @@ class RecursivePageTables final : public PageTables {
     //   6. vaddr  |= tablesStart_
     //  or,
     //   1. tableAddr = tablesStart_ | ((vaddr >> (9 * level)) | (0x7FFFFFF000 << 9*(4-level))) & 0x7FFFFFF000
-    return tablesStart_ | ((vaddr >> (9 * (int)level)) |
-                           (0x7FFFFFF000 << (9 * (4 - (int)level)))) &
-                              0x7FFFFFF000;
+    return tablesStart_ | (vaddr >> (9 * (int)level)) |
+           ((0x7FFFFFF000 << (9 * (4 - (int)level))) & 0x7FFFFFF000);
   }
   void mapNoTables(uintptr_t virtAddr, uintptr_t physAddr,
                    PageAttr attributes) const {
     // Assumes PT for entry already exists
     // Uses recursive virtual entry address.
-    *(PageEntry*)entryAddr(virtAddr) =
-        PageEntry(physAddr, PageAttr::Present | PageAttr::RW);
+    *(PageEntry*)entryAddr(virtAddr) = PageEntry(physAddr, attributes);
     invalidate_page(virtAddr);
   }
   void unMapNoInvalidate(uintptr_t virtAddr) {

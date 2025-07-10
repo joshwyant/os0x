@@ -79,7 +79,7 @@ class UefiMemoryBootstrapper final : public k::MemoryBootstrapper {
 class UefiKernelBootstrapper final : public k::KernelBootstrapper {
  public:
   UefiKernelBootstrapper(const boot_info_t* bootInfo)
-      : memoryBootstrapper_{*this}, bootInfo_(*bootInfo) {}
+      : bootInfo_(*bootInfo), memoryBootstrapper_{*this} {}
 
   k::MemoryBootstrapper& memoryBootstrapper() override {
     return memoryBootstrapper_;
@@ -108,11 +108,11 @@ inline UefiMemoryBootstrapper::UefiMemoryBootstrapper(
     const UefiKernelBootstrapper& parent)
     : layout_{},
       bootstrapAllocator_{*this},
-      physicalMemoryRange_{*this},
       pageTablePhysicalAddress_{parent.bootInfo().page_table_physical},
-      nextFreeVirtualPage_{parent.bootInfo().memory_end},
       memoryMap_{parent.bootInfo().memory_map},
-      memSize_{calcMemSize(parent.bootInfo().memory_map)},
       descriptorCount_{parent.bootInfo().memory_map.memory_map_size /
                        parent.bootInfo().memory_map.descriptor_size},
-      descriptorIndex_{-1} {}
+      descriptorIndex_{-1},
+      physicalMemoryRange_{*this},
+      nextFreeVirtualPage_{parent.bootInfo().memory_end},
+      memSize_{calcMemSize(parent.bootInfo().memory_map)} {}

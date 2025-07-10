@@ -12,7 +12,7 @@
 #define memset(a, b, c) _memset(a, b, c)
 #define memcmp(a, b, c) _memcmp(a, b, c)
 
-static uint32_t _strtoul(const char* p) {
+static inline uint32_t _strtoul(const char* p) {
   uint32_t n = 0;
   int c = 8;  // uint32 hex chars count
   while (*p != 0 && c--) {
@@ -30,7 +30,7 @@ static uint32_t _strtoul(const char* p) {
   return n;
 }
 
-static int _strncmp(const char* a, const char* b, size_t n) {
+static inline int _strncmp(const char* a, const char* b, size_t n) {
   while (n-- && (*a || *b)) {
     if (*a != *b)
       return *(unsigned char*)a - *(unsigned char*)b;
@@ -40,14 +40,14 @@ static int _strncmp(const char* a, const char* b, size_t n) {
   return 0;
 }
 
-static size_t _strlen(const char* s) {
+static inline size_t _strlen(const char* s) {
   size_t len = 0;
   while (*s++)
     len++;
   return len;
 }
 
-static void* _memcpy(void* dest, const void* src, size_t n) {
+static inline void* _memcpy(void* dest, const void* src, size_t n) {
   unsigned char* d = (unsigned char*)dest;
   const unsigned char* s = (const unsigned char*)src;
   while (n--)
@@ -55,12 +55,12 @@ static void* _memcpy(void* dest, const void* src, size_t n) {
   return dest;
 }
 
-static void _memset(void* dest, unsigned char val, size_t n) {
+static inline void _memset(void* dest, unsigned char val, size_t n) {
   for (size_t i = 0; i < n; i++)
     ((unsigned char*)dest)[i] = val;
 }
 
-static int _memcmp(const void* a, const void* b, size_t n) {
+static inline int _memcmp(const void* a, const void* b, size_t n) {
   const unsigned char *pa = (const unsigned char*)a,
                       *pb = (const unsigned char*)b;
   for (size_t i = 0; i < n; i++) {

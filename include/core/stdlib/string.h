@@ -28,7 +28,7 @@ class string {
   };
 
  public:
-  string() : is_short1_{true}, shortstr_{}, shortlen_{0} {}
+  string() : is_short1_{true}, shortlen_{0}, shortstr_{} {}
   string(const char* cstr) : string() {
     size_t len = rtk::strlen(cstr);
     copy_cstr(cstr, len);

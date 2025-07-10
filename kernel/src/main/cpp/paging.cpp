@@ -22,19 +22,19 @@ uint8_t makeUnsetBitsMask(size_t& currentPage, size_t endPage);
 
 RecursivePageTables::RecursivePageTables(
     const KernelMemoryLayout& layout, const PhysicalMemoryAllocator& pallocator,
-    const VirtualMemoryAllocator& vallocator,
+    // const VirtualMemoryAllocator& vallocator,
     const MemoryBootstrapper& memoryBootstrapper)
 
     : PageTables(memoryBootstrapper.pageTablePhysicalAddress(),
                  layout.pageTableAddress()),
       tablesStart_{layout.pageTablesStart()},
-      tablesEnd_{layout.pageTablesEnd()},
-      pallocator_{pallocator},
-      vallocator_{vallocator} {}
+      // tablesEnd_{layout.pageTablesEnd()},
+      pallocator_{pallocator} /*,
+      vallocator_{vallocator}*/
+{}
 
 rtk::StatusCode RecursivePageTables::map(uintptr_t virtAddr, uintptr_t physAddr,
                                          PageAttr attributes) const {
-  rtk::StatusCode status;
   volatile PageTable* table = &pml4_;
 
   // Recurse page tables and make sure they exist; find the final page table
@@ -226,7 +226,7 @@ rtk::StatusOr<PageSet> DefaultPhysicalMemoryAllocator::allocatePages(
 
   // Enumerate bitmap in chunks of 1 or 8*2^x bits
   for (auto page = startPage; page < bitmapPages; page++) {
-    const auto bitmapPagesLeft = bitmapPages - page;
+    // const auto bitmapPagesLeft = bitmapPages - page;
     const auto pagesNeeded = count - pagesAllocated;
     const auto byte = page / UINT8_WIDTH;
     const auto bit = page % UINT8_WIDTH;
@@ -299,6 +299,6 @@ rtk::StatusOr<uintptr_t> DefaultVirtualMemoryAllocator::allocatePage() const {
 }
 
 rtk::StatusOr<PageSet> DefaultVirtualMemoryAllocator::allocatePages(
-    size_t count) const {
+    size_t _) const {
   return rtk::StatusCode::NotImplemented;
 }

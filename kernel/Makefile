@@ -29,7 +29,7 @@ KERNEL_OBJS := 	obj/start.o \
 				obj/lib/cpp/new.o \
 				obj/packages/efi_shim/uefi_shim.o
 KERNEL_DEFINES := 
-KERNEL_CFLAGS := -target $(KERNEL_TARGET) -ffreestanding -fno-exceptions -fno-rtti -nostdlib -fno-builtin -fno-pic -mcmodel=large -g -c -MMD -MP
+KERNEL_CFLAGS := -target $(KERNEL_TARGET) -ffreestanding -fno-exceptions -fno-rtti -nostdlib -fno-builtin -fno-pic -mcmodel=large -g -c -MMD -MP -Wreturn-type -Wall -Werror
 KERNEL_ASFLAGS := -ffreestanding -m64 -c -MMD -MP
 KERNEL_ROOT_DIR := .
 KERNEL_INCLUDE := $(INCLUDES) $(EFI_INCLUDES) -I$(KERNEL_ROOT_DIR)/include -I$(KERNEL_ROOT_DIR)/include/arch/amd64

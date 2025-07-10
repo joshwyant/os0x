@@ -24,11 +24,11 @@ const KernelContext& k::Context() {
 
 DefaultKernelContext::DefaultKernelContext(KernelBootstrapper& bootstrapper)
     : pageAllocator_{bootstrapper.memoryBootstrapper()},
-      virtualMemoryAllocator_{},
-      pageTables_{memoryLayout_, pageAllocator_, virtualMemoryAllocator_,
-                  bootstrapper.memoryBootstrapper()},
       pageAllocatorPtr_(
-          &bootstrapper.memoryBootstrapper().bootstrapAllocator()) {
+          &bootstrapper.memoryBootstrapper().bootstrapAllocator()),
+      virtualMemoryAllocator_{},
+      pageTables_{memoryLayout_, pageAllocator_,  //virtualMemoryAllocator_,
+                  bootstrapper.memoryBootstrapper()} {
   pageAllocator_.init(this, bootstrapper.memoryBootstrapper());
   pageAllocatorPtr_ = &pageAllocator_;
 }

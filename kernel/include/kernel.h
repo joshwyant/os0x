@@ -3,7 +3,7 @@
 #include "asm.h"
 #include "kernel/kernel.h"
 
-static void freeze() {
+static inline void freeze() {
   disable_interrupts();
   while (true)
     halt_cpu();

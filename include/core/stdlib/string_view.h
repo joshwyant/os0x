@@ -8,8 +8,7 @@ class string_view {
  public:
   constexpr string_view() : ptr_{nullptr}, len_{0} {}
   constexpr string_view(const char* str) : string_view{str, strlen(str)} {}
-  constexpr string_view(const char* str, size_t len)
-      : ptr_{str}, len_{strlen(str)} {}
+  constexpr string_view(const char* str, size_t len) : ptr_{str}, len_{len} {}
   constexpr string_view(const string_view& other)
       : ptr_{other.ptr_}, len_{other.len_} {}
   constexpr const char* c_str() const { return ptr_; }

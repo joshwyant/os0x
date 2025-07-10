@@ -50,9 +50,10 @@ typedef struct {
 typedef const char* cpio_file_entry_ptr_t;
 typedef const char* cpio_file_base_ptr_t;
 
-static cpio_file_entry_ptr_t find_cpio_file(cpio_file_base_ptr_t base,
-                                            size_t size, const char* filename,
-                                            size_t* out_size) {
+static inline cpio_file_entry_ptr_t find_cpio_file(cpio_file_base_ptr_t base,
+                                                   size_t size,
+                                                   const char* filename,
+                                                   size_t* out_size) {
   const char* p = base;
   const char* end = p + size;
 

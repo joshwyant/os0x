@@ -140,10 +140,12 @@ class StatusOr {
     }
     return status_;
   }
-  const T& get() const {
-    if (!hasT_) {
+  void check() const {
+    if (!hasT_)
       StatusTrap(status_);
-    }
+  }
+  const T& get() const {
+    check();
     return item_;
   }
   T& get() { return const_cast<T&>(as_const(*this).get()); }
@@ -160,6 +162,19 @@ class StatusOr {
     }
     return StatusOr<U>(f(item_));
   }
+
+  auto get_or(const T& default_value) const {
+    return hasT_ ? item_ : default_value;
+  }
+  auto get_or(T&& defaultValue) const {
+    return hasT_ ? item_ : rtk::move(defaultValue);
+  }
+  template <typename F>
+  T get_or_else(F fallback_fn) const {
+    return hasT_ ? item_ : fallback_fn();
+  }
+
+  T get_or_default() const { return hasT_ ? item_ : T{}; }
 
   template <typename F>
   auto and_then(F&& f) const {
