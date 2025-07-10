@@ -4,6 +4,7 @@
 #include "asm.h"
 #include "core/status.h"
 #include "core/stdlib/freestanding/string.h"
+#include "core/stdlib/memory.h"
 #include "core/stdlib/utility.h"
 
 namespace k {
@@ -386,7 +387,7 @@ class RecursivePageTables final : public PageTables {
   }
 };  // class RecursivePageTables
 
-class PhysicalMemoryAllocator {
+class PhysicalMemoryAllocator : rtk::DynamicPlacement<PhysicalMemoryAllocator> {
  public:
   PhysicalMemoryAllocator(const PhysicalMemoryAllocator& other) = delete;
   PhysicalMemoryAllocator(PhysicalMemoryAllocator&& other) = delete;

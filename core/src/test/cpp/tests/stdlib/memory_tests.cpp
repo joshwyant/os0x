@@ -263,6 +263,30 @@ int test_unique_array_deleted() {
   return 0;
 }
 
+class FakeVirtualDeleteClass
+    : public rtk::DynamicPlacement<FakeVirtualDeleteClass> {
+ public:
+  using rtk::DynamicPlacement<FakeVirtualDeleteClass>::create;
+  using rtk::DynamicPlacement<FakeVirtualDeleteClass>::create_at;
+};
+
+int test_virtual_delete() {
+  static_assert(
+      rtk::is_inherited_from_v<rtk::VirtualDelete<FakeVirtualDeleteClass>,
+                               FakeVirtualDeleteClass>);
+
+  // FakeVirtualDeleteClass c{};
+  // auto a = rtk::make_unique<FakeVirtualDeleteClass>(&c);
+  auto b = FakeVirtualDeleteClass::create();
+  static_assert(
+      rtk::is_same_v<
+          decltype(b),
+          rtk::unique_ptr<FakeVirtualDeleteClass,
+                          rtk::virtual_deleter<FakeVirtualDeleteClass>>>,
+      "Failed to get a virtual_unique_ptr from make_unique!");
+  return 0;
+}
+
 void stdlib_memory_tests() {
   TEST(test_unique_default_constructor);
   TEST(test_unique_default);
@@ -279,6 +303,8 @@ void stdlib_memory_tests() {
   TEST(test_unique_dereference);
   TEST(test_unique_bool);
   TEST(test_unique_null);
+  TEST(test_virtual_delete);
+  // TEST(test_dynamic_delete);
   // TEST(test_unique_array);
   TEST(test_unique_array_deleted);
 }

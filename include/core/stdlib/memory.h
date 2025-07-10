@@ -2,10 +2,25 @@
 
 #include <stdatomic.h>
 // #include <initializer_list>
-#include "core/stdlib/stdlib.h"   // rtk::panic
-#include "core/stdlib/utility.h"  // rtk::swap, rtk::as_const
+#include "core/stdlib/stdlib.h"       // rtk::panic
+#include "core/stdlib/type_traits.h"  // rtk::enable_if
+#include "core/stdlib/utility.h"      // rtk::swap, rtk::as_const, rtk::forward
 
 namespace rtk {
+template <typename T, typename Deleter>
+class unique_ptr;
+template <typename T>
+class virtual_deleter;
+template <typename T>
+class VirtualDelete;
+// template <typename T>
+// using virtual_unique_ptr = unique_ptr<T, virtual_deleter<T>>;
+template <typename T>
+using virtual_unique_ptr = unique_ptr<T, virtual_deleter<T>>;
+template <typename T>
+enable_if_t<is_inherited_from_v<VirtualDelete<T>, T>, virtual_unique_ptr<T>>
+make_unique(T* obj);
+
 template <class T>
 class heap_deleter final {
  public:
@@ -19,6 +34,69 @@ class heap_deleter<T[]> final {
   // `delete` is assumed noop for null
   void operator()(T* obj) const { delete[] obj; }
 };  // class heap_deleter
+
+template <class T>
+class virtual_deleter final {
+ public:
+  void operator()(T* obj) const {
+    if (obj) {
+      obj->deleter();
+    }
+  }
+};  // class virtual_deleter
+
+class DeletionTrait {};
+
+template <class T>
+class VirtualDelete : public DeletionTrait {
+ public:
+  virtual void deleter() const { delete this; }
+  virtual ~VirtualDelete() = default;
+};  // class VirtualDelete
+
+// template <class T>
+// inline VirtualDelete<T>::~VirtualDelete() {} // not pure virtual
+
+template <class T>
+class VirtualDelete<T[]> {
+ public:
+  virtual void deleter() const { delete[] this; }
+  virtual ~VirtualDelete() = default;
+};  // class VirtualDelete<T[]>
+
+// TODO: specialization for arrays
+// (or just disallow)
+template <class T>
+class DynamicPlacement : public VirtualDelete<T> {
+ public:
+  void deleter() const override {
+    if (isHeapAllocated_) {
+      // normal or array delete
+      // (base VirtualDelete uses heap)
+      VirtualDelete<T>::deleter();
+    } else {
+      // no-op, just destructor
+      static_cast<const T*>(this)->~T();
+    }
+  }
+
+  template <typename... Args>
+  static virtual_unique_ptr<T> create(Args&&... args) {
+    auto ptr = new T{rtk::forward(args)...};
+    ptr->isHeapAllocated_ = true;
+    return make_unique<T>(ptr);
+  }
+
+  template <typename... Args>
+  static virtual_unique_ptr<T> create_at(T* placement, Args&&... args) {
+    auto ptr = new (placement) T{rtk::forward(args)...};
+    ptr->isHeapAllocated_ = false;
+    return make_unique<T>(ptr);
+  }
+
+ private:
+  bool isHeapAllocated_ = true;
+};
 
 // // Don't use for arrays
 // // Array specializations of templates (T[])
@@ -248,13 +326,29 @@ unique_ptr<T, heap_deleter<T>> make_unique(decltype(nullptr)) {
 // Heap should cause unique_ptr to evaluate to null gracefully
 // when out of memory
 template <typename T>
-unique_ptr<T, heap_deleter<T>> make_unique(T* obj) {
+enable_if_t<not is_inherited_from_v<DeletionTrait, T>,
+            unique_ptr<T, heap_deleter<T>>>
+make_unique(T* obj) {
   return unique_ptr<T, heap_deleter<T>>{obj};
 }
 
 template <typename T>
 unique_ptr<T[], heap_deleter<T[]>> make_unique(T* obj, size_t len) {
   return unique_ptr<T[], heap_deleter<T[]>>{obj, len};
+}
+
+template <typename T>
+enable_if_t<is_inherited_from_v<VirtualDelete<T>, T>,
+            unique_ptr<T, virtual_deleter<T>>>
+make_unique(T* obj) {
+  return unique_ptr<T, virtual_deleter<T>>{obj};
+}
+
+template <typename T>
+enable_if_t<is_inherited_from_v<VirtualDelete<T>, T>,
+            unique_ptr<T[], virtual_deleter<T[]>>>
+make_unique(T* obj, size_t len) {
+  return unique_ptr<T[], virtual_deleter<T[]>>{obj};
 }
 
 // TODO: make_unique for arrays

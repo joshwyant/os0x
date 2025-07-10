@@ -23,6 +23,24 @@ struct is_same : public false_type {};
 template <typename T>
 struct is_same<T, T> : public true_type {};
 
+template <typename T1, typename T2>
+static constexpr bool is_same_v = is_same<T1, T2>::value;
+
+template <typename Base, typename Derived>
+struct is_inherited_from {
+ private:
+  static char test(Base*);
+  static int test(...);
+
+ public:
+  static constexpr bool value =
+      sizeof(test(static_cast<Derived*>(nullptr))) == sizeof(char);
+};
+
+template <typename Base, typename Derived>
+static constexpr bool is_inherited_from_v =
+    is_inherited_from<Base, Derived>::value;
+
 template <typename T>
 struct is_integral : public false_type {};
 
