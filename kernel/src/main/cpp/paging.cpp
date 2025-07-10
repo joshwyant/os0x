@@ -105,12 +105,13 @@ void DefaultPhysicalMemoryAllocator::init(
   bitmapSize_ = pagesNeeded * kPageSize;
 
   // Reserve our virtual memory space
-  status = bootstrapper.reserveVirtualMemory(
-      pagesNeeded, reinterpret_cast<uintptr_t*>(&bitmap_));
-  if (status != rtk::StatusCode::Ok)  // out of mem?
+  auto memResult = bootstrapper.reserveVirtualMemory(pagesNeeded);
+  if (!memResult)  // out of mem?
     return;
 
-  const auto bitmapStart = reinterpret_cast<uintptr_t>(bitmap_);
+  const auto bitmapStart = memResult.get();
+  bitmap_ = reinterpret_cast<uint8_t*>(bitmapStart);
+
   auto currentPage = bitmapStart;
 
   // Keep allocating [contiguous?] physical pages (bootstrap allocator used behind the scenes)
@@ -293,12 +294,11 @@ rtk::StatusOr<PageSet> DefaultPhysicalMemoryAllocator::allocatePages(
   return PageSet{kPageSize, newPhysicalAddress, pagesAllocated};
 }
 
-rtk::StatusCode DefaultVirtualMemoryAllocator::allocatePage(
-    uintptr_t* newVirtualAddressOut) const {
+rtk::StatusOr<uintptr_t> DefaultVirtualMemoryAllocator::allocatePage() const {
   return rtk::StatusCode::NotImplemented;
 }
 
-rtk::StatusCode DefaultVirtualMemoryAllocator::allocatePages(
-    size_t count, uintptr_t* newVirtualAddressOut) const {
+rtk::StatusOr<PageSet> DefaultVirtualMemoryAllocator::allocatePages(
+    size_t count) const {
   return rtk::StatusCode::NotImplemented;
 }

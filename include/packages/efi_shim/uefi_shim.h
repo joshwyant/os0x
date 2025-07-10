@@ -59,8 +59,7 @@ class UefiMemoryBootstrapper final : public k::MemoryBootstrapper {
   uintptr_t mappedVirtualMemoryEnd() const override {
     return nextFreeVirtualPage_;
   }
-  rtk::StatusCode reserveVirtualMemory(size_t pageCount,
-                                       uintptr_t* newAddr) override;
+  rtk::StatusOr<uintptr_t> reserveVirtualMemory(size_t pageCount) override;
   const k::KernelMemoryLayout& layout() const override { return layout_; }
 
  private:

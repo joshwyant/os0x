@@ -436,10 +436,8 @@ class VirtualMemoryAllocator {
       delete;
   VirtualMemoryAllocator& operator=(VirtualMemoryAllocator&& other) = delete;
 
-  virtual rtk::StatusCode allocatePage(
-      uintptr_t* newVirtualAddressOut) const = 0;
-  virtual rtk::StatusCode allocatePages(
-      size_t count, uintptr_t* newVirtualAddressOut) const = 0;
+  virtual rtk::StatusOr<uintptr_t> allocatePage() const = 0;
+  virtual rtk::StatusOr<PageSet> allocatePages(size_t count) const = 0;
 
  protected:
   VirtualMemoryAllocator() = default;
@@ -447,9 +445,8 @@ class VirtualMemoryAllocator {
 
 class DefaultVirtualMemoryAllocator final : public VirtualMemoryAllocator {
  public:
-  rtk::StatusCode allocatePage(uintptr_t* newVirtualAddressOut) const override;
-  rtk::StatusCode allocatePages(size_t count,
-                                uintptr_t* newVirtualAddressOut) const override;
+  rtk::StatusOr<uintptr_t> allocatePage() const override;
+  rtk::StatusOr<PageSet> allocatePages(size_t count) const override;
 };  // class VirtualMemoryAllocator
 
 class MemoryBootstrapper {
@@ -463,8 +460,7 @@ class MemoryBootstrapper {
   virtual uintptr_t pageTablePhysicalAddress() const = 0;
   virtual size_t memorySize() const = 0;
   virtual uintptr_t mappedVirtualMemoryEnd() const = 0;
-  virtual rtk::StatusCode reserveVirtualMemory(size_t pageCount,
-                                               uintptr_t* newAddr) = 0;
+  virtual rtk::StatusOr<uintptr_t> reserveVirtualMemory(size_t pageCount) = 0;
   virtual const KernelMemoryLayout& layout() const = 0;
 
   class MemoryRangeSource {

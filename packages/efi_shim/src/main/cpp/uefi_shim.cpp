@@ -54,16 +54,17 @@ UefiMemoryBootstrapper::processFreePhysicalMemoryPages() {
   return MemoryRange{physicalMemoryRange_};
 }
 
-rtk::StatusCode UefiMemoryBootstrapper::reserveVirtualMemory(
-    size_t pageCount, uintptr_t* newAddr) {
+rtk::StatusOr<uintptr_t> UefiMemoryBootstrapper::reserveVirtualMemory(
+    size_t pageCount) {
+
   if (nextFreeVirtualPage_ + pageCount * kPageSize > layout_.memoryMapsEnd()) {
     return rtk::StatusCode::OutOfMemory;
   }
 
-  *newAddr = nextFreeVirtualPage_;
+  auto newAddr = nextFreeVirtualPage_;
   nextFreeVirtualPage_ += pageCount * EFI_PAGE_SIZE;
 
-  return rtk::StatusCode::Ok;
+  return newAddr;
 }
 
 rtk::StatusOr<uintptr_t> UefiBootstrapPhysicalMemoryAllocator::allocatePage()
